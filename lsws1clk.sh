@@ -166,7 +166,7 @@ path_update(){
         USER='nobody'
         GROUP='nobody'
         REPOPATH='/etc/yum.repos.d'
-        PHPINICONF="${LSWSFD}/lsphp${PHPVER}/etc/php.ini"
+        PHPINICONF="${LSDIR}/lsphp${PHPVER}/etc/php.ini"
         REDISSERVICE='/lib/systemd/system/redis.service'
         REDISCONF='/etc/redis.conf'
         MEMCACHESERVICE='/etc/systemd/system/memcached.service'
@@ -519,7 +519,7 @@ centos_pkg_mariadb(){
         cat > ${REPOPATH}/MariaDB.repo << EOM
 [mariadb]
 name = MariaDB
-baseurl = http://yum.mariadb.org/${MARIADBVER}/${CENTOSVER}
+baseurl = http://yum.mariadb.org/${MARIAVER}/${CENTOSVER}
 gpgkey=https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
 gpgcheck=1
 EOM
@@ -884,7 +884,7 @@ END
     semanage permissive -a memcached_t
     setsebool -P httpd_can_network_memcache 1
     systemctl daemon-reload > /dev/null 2>&1
-    change_owner /var/run/memcached
+    #change_owner /var/run/memcached
     change_owner ${WWWFD}
     service memcached start > /dev/null 2>&1
 }
