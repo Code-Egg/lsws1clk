@@ -35,14 +35,22 @@ lsws1clk/lsws1clk.sh
 ## Option
 No Option avaiable yet!
 
-## How fast
-Test by online tool - [load.io](https://loader.io/) with 5000 clients
+## Benchmark
+* Test client: 
+online tool - [load.io](https://loader.io/) with 5000 clients 
 
-Times
-![](https://github.com/Code-Egg/lsws1clk/tree/master/img/loader-2.png)
+* Test Server:
+[DigitalOcean](https://www.digitalocean.com/) $5 plan server
 
-Details
-![](https://github.com/Code-Egg/lsws1clk/tree/master/img/loader-3.png)
+* Target:
+WordPress v5.3 main page 
+
+* Result:
+5000 request per seconds without any error
+
+![](/img/loader-2.png)
+
+![](/img/loader-3.png)
 
 # Problems/Suggestions/Feedback/Contribution
 Please raise an issue on the repository, or send a PR for contributing.
