@@ -26,7 +26,7 @@ apt install git
 
 ## Install
 ``` bash
-git clone git@github.com:Code-Egg/lsws1clk.git
+git clone https://github.com/Code-Egg/lsws1clk.git
 ```
 ``` bash
 lsws1clk/lsws1clk.sh
