@@ -35,6 +35,15 @@ lsws1clk/lsws1clk.sh
 ## Option
 No Option avaiable yet!
 
+## How fast
+Test by online tool - [load.io](https://loader.io/) with 5000 clients
+
+Times
+![](https://github.com/Code-Egg/lsws1clk/tree/master/img/loader-2.png)
+
+Details
+![](https://github.com/Code-Egg/lsws1clk/tree/master/img/loader-3.png)
+
 # Problems/Suggestions/Feedback/Contribution
 Please raise an issue on the repository, or send a PR for contributing.
 
