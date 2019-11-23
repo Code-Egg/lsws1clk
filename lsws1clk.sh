@@ -32,6 +32,8 @@ BANNERNAME='wordpress'
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 BANNERDST=''
 SKIP_WP=0
+SKIP_REDIS=0
+SKIP_MEMCA=0
 OSNAMEVER=''
 OSNAME=''
 OSVER=''
@@ -345,14 +347,24 @@ ubuntu_pkg_postfix(){
 ubuntu_pkg_memcached(){
     echoG 'Install Memcached'
     apt-get -y install memcached > /dev/null 2>&1
-    systemctl start memcached > /dev/null 2>&1
-    systemctl enable memcached > /dev/null 2>&1
+    if [ ${?} != 0 ]; then
+        echoR 'Memcache install failed, please  check!'
+        SKIP_MEMCA=1
+    else    
+        systemctl start memcached > /dev/null 2>&1
+        systemctl enable memcached > /dev/null 2>&1
+    fi    
 }
 
 ubuntu_pkg_redis(){
     echoG 'Install Redis'
     apt-get -y install redis > /dev/null 2>&1
-    systemctl start redis > /dev/null 2>&1
+    if [ ${?} != 0 ]; then
+        echoR 'Redis install failed, please check!'
+        SKIP_REDIS=1
+    else    
+        systemctl start redis > /dev/null 2>&1
+    fi
 }
 
 pkg_phpmyadmin(){
@@ -371,6 +383,13 @@ pkg_phpmyadmin(){
 
 ubuntu_pkg_phpmyadmin(){
     pkg_phpmyadmin
+}
+
+ubuntu_pkg_ufw(){
+    if [ ! -f /usr/sbin/ufw ]; then
+        echoG 'Install ufw'
+        apt-get install ufw -y > /dev/null 2>&1
+    fi    
 }
 
 ubuntu_pkg_certbot(){
@@ -455,14 +474,24 @@ centos_pkg_postfix(){
 centos_pkg_memcached(){
     echoG 'Install Memcached'
     yum -y install memcached > /dev/null 2>&1
-    systemctl start memcached > /dev/null 2>&1
-    systemctl enable memcached > /dev/null 2>&1
+    if [ ${?} != 0 ]; then
+        echoR 'Memcache install failed, please  check!'
+        SKIP_MEMCA=1
+    else        
+        systemctl start memcached > /dev/null 2>&1
+        systemctl enable memcached > /dev/null 2>&1
+    fi    
 }
 
 centos_pkg_redis(){
     echoG 'Install Redis'
     yum -y install redis > /dev/null 2>&1
-    systemctl start redis > /dev/null 2>&1
+    if [ ${?} != 0 ]; then
+        echoR 'Redis install failed, please check!'
+        SKIP_REDIS=1
+    else    
+        systemctl start redis > /dev/null 2>&1
+    fi    
 }
 
 centos_pkg_phpmyadmin(){
@@ -824,39 +853,48 @@ config_php(){
 }
 
 ubuntu_config_memcached(){
-    echoG 'Setting Memcached'
-    service memcached stop > /dev/null 2>&1
-    cat >> "${MEMCACHECONF}" <<END
+    if [ ${SKIP_MEMCA} = 0 ]; then
+        echoG 'Setting Memcached'
+        service memcached stop > /dev/null 2>&1
+        cat >> "${MEMCACHECONF}" <<END
 -s /var/www/memcached.sock
 -a 0770
 -p /tmp/memcached.pid
 END
-    NEWKEY="-u ${USER}"
-    linechange '\-u memcache' ${MEMCACHECONF} "${NEWKEY}"
-    systemctl daemon-reload > /dev/null 2>&1
-    change_owner /var/run/memcached
-    change_owner ${WWWFD}
-    service memcached stop > /dev/null 2>&1
-    service memcached start > /dev/null 2>&1
+        NEWKEY="-u ${USER}"
+        linechange '\-u memcache' ${MEMCACHECONF} "${NEWKEY}"
+        systemctl daemon-reload > /dev/null 2>&1
+        change_owner /var/run/memcached
+        change_owner ${WWWFD}
+        service memcached stop > /dev/null 2>&1
+        service memcached start > /dev/null 2>&1
+    else
+        echo 'Skip Memcached config!'
+    fi        
 }
 
 ubuntu_config_redis(){
-    echoG 'Setting Redis'
-    service redis-server stop > /dev/null 2>&1
-    NEWKEY="Group=${GROUP}"
-    linechange 'Group=' ${REDISSERVICE} "${NEWKEY}"
-    cat >> "${REDISCONF}" <<END
+    if [ ${SKIP_REDIS} = 0 ]; then
+        echoG 'Setting Redis'
+        service redis-server stop > /dev/null 2>&1
+        NEWKEY="Group=${GROUP}"
+        linechange 'Group=' ${REDISSERVICE} "${NEWKEY}"
+        cat >> "${REDISCONF}" <<END
 unixsocket /var/run/redis/redis-server.sock
 unixsocketperm 775
 END
-    systemctl daemon-reload > /dev/null 2>&1
-    service redis-server start > /dev/null 2>&1
+        systemctl daemon-reload > /dev/null 2>&1
+        service redis-server start > /dev/null 2>&1
+    else
+        echo 'Skip Redis config!'    
+    fi    
 }
 
 centos_config_memcached(){
-    echoG 'Setting memcached'
-    service memcached stop > /dev/null 2>&1
-    cat >> "${MEMCACHESERVICE}" <<END
+    if [ ${SKIP_MEMCA} = 0 ]; then
+        echoG 'Setting memcached'
+        service memcached stop > /dev/null 2>&1
+        cat >> "${MEMCACHESERVICE}" <<END
 [Unit]
 Description=Memcached
 Before=httpd.service
@@ -877,29 +915,35 @@ MAXCONN="1024"
 CACHESIZE="64"
 OPTIONS="-s /var/www/memcached.sock -a 0770 -U 0 -l 127.0.0.1"
 END
-    ### SELINUX permissive Mode
-    if [ ! -f /usr/sbin/semanage ]; then
-        yum install -y policycoreutils-python-utils > /dev/null 2>&1
-    fi
-    semanage permissive -a memcached_t
-    setsebool -P httpd_can_network_memcache 1
-    systemctl daemon-reload > /dev/null 2>&1
-    #change_owner /var/run/memcached
-    change_owner ${WWWFD}
-    service memcached start > /dev/null 2>&1
+        ### SELINUX permissive Mode
+        if [ ! -f /usr/sbin/semanage ]; then
+            yum install -y policycoreutils-python-utils > /dev/null 2>&1
+        fi
+        semanage permissive -a memcached_t
+        setsebool -P httpd_can_network_memcache 1
+        systemctl daemon-reload > /dev/null 2>&1
+        #change_owner /var/run/memcached
+        change_owner ${WWWFD}
+        service memcached start > /dev/null 2>&1
+    else
+        echo 'Skip Memcached setup!'
+    fi        
 }
 
 centos_config_redis(){
-    service redis stop > /dev/null 2>&1
-    NEWKEY="Group=${GROUP}"
-    linechange 'Group=' ${REDISSERVICE} "${NEWKEY}"
-    cat >> "${REDISCONF}" <<END
+    if [ ${SKIP_REDIS} = 0 ]; then
+        service redis stop > /dev/null 2>&1
+        NEWKEY="Group=${GROUP}"
+        linechange 'Group=' ${REDISSERVICE} "${NEWKEY}"
+        cat >> "${REDISCONF}" <<END
 unixsocket /var/run/redis/redis-server.sock
 unixsocketperm 775
 END
-    systemctl daemon-reload > /dev/null 2>&1
-    service redis start > /dev/null 2>&1
-    echoG 'Finish Object Cache'
+        systemctl daemon-reload > /dev/null 2>&1
+        service redis start > /dev/null 2>&1
+    else
+        echo 'Skip Redis config!'
+    fi    
 }
 
 ubuntu_firewall_add(){
@@ -1031,6 +1075,7 @@ ubuntu_pkg_main(){
     ubuntu_pkg_postfix
     ubuntu_pkg_memcached
     ubuntu_pkg_redis
+    ubuntu_pkg_ufw
     ubuntu_pkg_phpmyadmin
     ubuntu_pkg_certbot
     ubuntu_pkg_system

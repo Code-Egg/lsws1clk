@@ -16,12 +16,12 @@ License start from $0. [Read More](https://www.litespeedtech.com/products/litesp
 ## Install Pre-Requisites
 For CentOS/RHEL Based Systems
 ```bash
-yum install git
+yum install git -y
 ```
 
 For Debian/Ubuntu Based Systems
 ```bash
-apt install git
+apt install git -y
 ```
 
 ## Install

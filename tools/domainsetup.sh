@@ -59,7 +59,6 @@ domainadd(){
     CHECK_WWW=$(echo ${MY_DOMAIN} | cut -c1-4)
     if [[ ${CHECK_WWW} == www. ]] ; then
         WWW='TRUE'
-        #check if domain starts with www.
         MY_DOMAIN2=$(echo ${MY_DOMAIN} | cut -c 5-)
 
     fi
@@ -216,7 +215,7 @@ main_cert_setup(){
 }
 
 main_upgrade(){
-    if [ "${OSNAME}" = 'ubuntu' ]; then 
+    if [ "${OSNAME}" = 'ubuntu' ] || [ "${OSNAME}" = 'debian' ]; then 
         aptupgradelist
     else
         yumupgradelist
