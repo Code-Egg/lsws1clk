@@ -64,6 +64,14 @@ echoR()
     echo -e "\033[38;5;203m${1}\033[39m"
 }
 
+help_message(){
+    case ${1} in
+    "1")
+    echoY 'Installation finished, please reopen the ssh console to see the banner.'
+    ;;
+    esac
+}
+
 get_ip(){
     if [ -e /sys/devices/virtual/dmi/id/product_uuid ] && [ "$(sudo cat /sys/devices/virtual/dmi/id/product_uuid | cut -c 1-3)" = 'EC2' ]; then
         MYIP=$(curl http://169.254.169.254/latest/meta-data/public-ipv4)
@@ -1017,6 +1025,7 @@ set_banner(){
         chmod +x ${BANNERDST}
     fi
 	setup_domain
+    help_message 1
 }
 
 filepermission_update(){
