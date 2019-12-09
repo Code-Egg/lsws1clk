@@ -1,7 +1,16 @@
 #!/bin/bash
-# /********************************************************************
-# LiteSpeed + WordPress + LSCache + PHP 7.3 + Object Cache + PHPMyAdmin
-# *********************************************************************/
+# /***************************************************************
+# LiteSpeed Latest
+# WordPress Latest 
+# LSCache Latest 
+# PHP 7.3 
+# MariaDB 10.4
+# Memcached
+# Redis
+# PHPMyAdmin Latest
+# ****************************************************************/
+### Author: Cold Egg
+
 CMDFD='/opt'
 WWWFD='/var/www'
 DOCROOT='/var/www/html'
@@ -13,7 +22,7 @@ LSVCONF="${LSDIR}/DEFAULT/conf/vhconf.xml"
 USER=''
 GROUP=''
 THEME='twentytwenty'
-MARIAVER='10.3'
+MARIAVER='10.4'
 PHPVER='73'
 PHP_M='7'
 PHP_S='3'
@@ -334,10 +343,8 @@ restart_lsws(){
 
 ubuntu_pkg_basic(){
     echoG 'Install basic packages'
-    if [ ! -e /bin/wget ]; then
-        silent apt-get install lsb-release -y
-        silent apt-get install curl wget -y
-    fi
+    silent apt-get install lsb-release -y
+    silent apt-get install curl wget unzip -y
     silent apt-get install curl unzip software-properties-common -y
 }
 
@@ -453,11 +460,9 @@ ubuntu_pkg_mariadb(){
 
 centos_pkg_basic(){
     echoG 'Install basic packages'
-    if [ ! -e /bin/wget ]; then
-        silent yum install epel-release -y
-        silent yum update -y
-        silent yum install curl yum-utils wget unzip -y
-    fi
+    silent yum install epel-release -y
+    silent yum update -y
+    silent yum install curl yum-utils wget unzip -y
     if [[ -z "$(rpm -qa epel-release)" ]]; then
         silent yum install epel-release -y
     fi
@@ -927,10 +932,10 @@ END
         if [ ! -f /usr/sbin/semanage ]; then
             yum install -y policycoreutils-python-utils > /dev/null 2>&1
         fi
-        semanage permissive -a memcached_t
-        setsebool -P httpd_can_network_memcache 1
+        semanage permissive -a memcached_t > /dev/null 2>&1
+        setsebool -P httpd_can_network_memcache 1 > /dev/null 2>&1
         systemctl daemon-reload > /dev/null 2>&1
-        #change_owner /var/run/memcached
+
         change_owner ${WWWFD}
         service memcached start > /dev/null 2>&1
     else
