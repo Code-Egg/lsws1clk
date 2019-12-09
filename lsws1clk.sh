@@ -587,11 +587,17 @@ set_mariadb_root(){
     SQLVER=$(mysql -u root -e 'status' | grep 'Server version')
     SQLVER_1=$(echo ${SQLVER} | awk '{print substr ($3,1,2)}')
     SQLVER_2=$(echo ${SQLVER} | awk -F '.' '{print $2}')
-    mysql -u root -e "UPDATE mysql.user SET authentication_string = '' WHERE user = 'root';"
-    mysql -u root -e "UPDATE mysql.user SET plugin = '' WHERE user = 'root';"
-    if [ "${SQLVER_1}" -le "10" ] && [ "${SQLVER_2}" -le "2" ]; then
+    if (( ${SQLVER_1} >=11 )); then
+        mysql -u root -e "ALTER USER root@localhost IDENTIFIED VIA mysql_native_password USING PASSWORD('${MYSQL_ROOT_PASS}');"
+    elif (( ${SQLVER_1} ==10 )) && (( ${SQLVER_2} >=4 && ${SQLVER_2}<=9 )); then
+        mysql -u root -e "ALTER USER root@localhost IDENTIFIED VIA mysql_native_password USING PASSWORD('${MYSQL_ROOT_PASS}');"
+    elif (( ${SQLVER_1} ==10 )) && (( ${SQLVER_2} ==3 )); then
+        mysql -u root -e "UPDATE mysql.user SET authentication_string = '' WHERE user = 'root';"
+        mysql -u root -e "UPDATE mysql.user SET plugin = '' WHERE user = 'root';"  
+    elif (( ${SQLVER_1} == 10 )) && (( ${SQLVER_2} == 2 )); then
         mysql -u root -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('${MYSQL_ROOT_PASS}');"
     else
+        echo 'Please check DB version!'
         mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '${MYSQL_ROOT_PASS}';"
     fi
 }
