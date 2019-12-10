@@ -462,7 +462,7 @@ centos_pkg_basic(){
     echoG 'Install basic packages'
     silent yum install epel-release -y
     silent yum update -y
-    silent yum install curl yum-utils wget unzip -y
+    silent yum install curl yum-utils wget unzip libnsl -y
     if [[ -z "$(rpm -qa epel-release)" ]]; then
         silent yum install epel-release -y
     fi
@@ -612,7 +612,7 @@ install_lsws(){
         rm -rf ${LSDIR}
     fi
     echoG 'Download LiteSpeed Web Server'
-    wget -q --no-check-certificate https://www.litespeedtech.com/packages/5.0/lsws-5.4-ent-x86_64-linux.tar.gz -P ${CMDFD}/
+    wget -q --no-check-certificate https://www.litespeedtech.com/packages/5.0/lsws-5.4.3-ent-x86_64-linux.tar.gz -P ${CMDFD}/
     silent tar -zxvf lsws-*-ent-x86_64-linux.tar.gz
     rm -f lsws-*.tar.gz
     cd lsws-*
