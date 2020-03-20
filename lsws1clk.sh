@@ -27,11 +27,18 @@ PHPVER='73'
 PHP_M='7'
 PHP_S='3'
 FIREWALLLIST="22 80 443"
+PHP_MEMORY='777'
 PHP_BIN="${LSDIR}/lsphp${PHPVER}/bin/lsphp"
 PHPINICONF=""
 WPCFPATH="${DOCROOT}/wp-config.php"
 REPOPATH=''
 WP_CLI='/usr/local/bin/wp'
+MA_COMPOSER='/usr/local/bin/composer'
+MA_VER='2.3.4'
+EMAIL='test@example.com'
+APP_ACCT='admin123'
+APP_PASS='password456'
+MA_BACK_URL='admin_123'
 MEMCACHECONF=''
 REDISSERVICE=''
 REDISCONF=''
@@ -46,6 +53,8 @@ SKIP_MEMCA=0
 OSNAMEVER=''
 OSNAME=''
 OSVER=''
+APP='wordpress'
+EPACE='        '
 
 silent() {
   if [[ $debug ]] ; then
@@ -72,12 +81,27 @@ echoR()
 {
     echo -e "\033[38;5;203m${1}\033[39m"
 }
+echow(){
+    FLAG=${1}
+    shift
+    echo -e "\033[1m${EPACE}${FLAG}\033[0m${@}"
+}
 
 help_message(){
     case ${1} in
     "1")
-    echoY 'Installation finished, please reopen the ssh console to see the banner.'
+        echoY 'Installation finished, please reopen the ssh console to see the banner.'
     ;;
+    "2")
+        echo -e "\033[1mOPTIONS\033[0m"
+        echow '-W, --wordpress'
+        echo "${EPACE}${EPACE}Example: lsws1clk.sh -W. If no input, script will still install wordpress by default"
+        echow '-M, --magento'
+        echo "${EPACE}${EPACE}Example: lsws1clk.sh -M"
+        echow '-H, --help'
+        echo "${EPACE}${EPACE}Display help and exit." 
+        exit 0
+    ;;    
     esac
 }
 
@@ -316,10 +340,17 @@ update_pass_file(){
 admin_pass="${ADMIN_PASS}"
 EOM
 
-    cat >> ${DB_PASS_PATH} <<EOM
+    if [ "${APP}" = 'wordpress' ]; then
+        cat >> ${DB_PASS_PATH} <<EOM
 root_mysql_pass="${MYSQL_ROOT_PASS}"
 wordpress_mysql_pass="${MYSQL_USER_PASS}"
 EOM
+    elif [ "${APP}" = 'magento' ]; then
+        cat >> ${DB_PASS_PATH} <<EOM
+root_mysql_pass="${MYSQL_ROOT_PASS}"
+wordpress_mysql_pass="${MYSQL_USER_PASS}"
+EOM
+    fi
 }
 
 rm_old_pkg(){
@@ -612,7 +643,7 @@ install_lsws(){
         rm -rf ${LSDIR}
     fi
     echoG 'Download LiteSpeed Web Server'
-    wget -q --no-check-certificate https://www.litespeedtech.com/packages/5.0/lsws-5.4.3-ent-x86_64-linux.tar.gz -P ${CMDFD}/
+    wget -q --no-check-certificate https://www.litespeedtech.com/packages/5.0/lsws-5.4.6-ent-x86_64-linux.tar.gz -P ${CMDFD}/
     silent tar -zxvf lsws-*-ent-x86_64-linux.tar.gz
     rm -f lsws-*.tar.gz
     cd lsws-*
@@ -674,14 +705,14 @@ centos_reinstall(){
 ubuntu_install_php(){
     echoG 'Install PHP & Packages for LSWS'
     ubuntu_reinstall "lsphp${PHPVER}"
-    for PKG in '' -common -curl -gd -json -mysql -imagick -imap -memcached -msgpack -redis -mcrypt -opcache ; do
+    for PKG in '' -common -curl -gd -json -mysql -imagick -imap -memcached -msgpack -redis -mcrypt -opcache -intl; do
         /usr/bin/apt ${OPTIONAL} install -y lsphp${PHPVER}${PKG} >/dev/null 2>&1
     done
 }
 
 centos_install_php(){
     echoG 'Install PHP & Packages'
-    for PKG in '' -common -gd -pdo -imap -mbstring -imagick -mysqlnd -memcached -mcrypt -process -opcache -redis -json -xml -xmlrpc; do
+    for PKG in '' -common -gd -pdo -imap -mbstring -imagick -mysqlnd -memcached -mcrypt -process -opcache -redis -json -xml -xmlrpc -intl; do
         /usr/bin/yum install lsphp${PHPVER}${PKG} -y >/dev/null 2>&1
     done
 
@@ -698,6 +729,11 @@ set_mariadb_user(){
     fi
 }
 
+www_user_pass(){
+    LINENUM=$(grep -n -m1 www-data /etc/passwd | awk -F ':' '{print $1}')
+    sed -i "${LINENUM}s|/usr/sbin/nologin|/bin/bash|" /etc/passwd
+}
+
 install_WP_CLI(){
     if [ -e ${WP_CLI} ]; then
         echoG 'WP CLI already exist'
@@ -711,6 +747,19 @@ install_WP_CLI(){
             mv wp-cli.phar ${WP_CLI}
         fi
     fi
+}
+
+install_composer(){
+    if [ -e ${MA_COMPOSER} ]; then
+        echoG 'Composer already exist'
+    else
+        curl -sS https://getcomposer.org/installer | php
+        mv composer.phar ${MA_COMPOSER}
+        silent composer --version
+        if [ ${?} != 0 ]; then
+            echoR 'Issue with composer, Please check!'
+        fi        
+    fi    
 }
 
 install_wordpress(){
@@ -737,6 +786,73 @@ install_wordpress(){
     fi
 }
 
+install_magento(){
+    if [ -e ${DOCROOT}/index.php ]; then
+        echoR "${DOCROOT}/index.php exist, skip."
+    else    
+        install_composer
+        rm -f ${MA_VER}.tar.gz
+        wget -q --no-check-certificate https://github.com/magento/magento2/archive/${MA_VER}.tar.gz
+        if [ ${?} != 0 ]; then
+            echoR "Download ${MA_VER}.tar.gz failed, abort!"
+            exit 1
+        fi    
+        tar -zxf ${MA_VER}.tar.gz
+        mv magento2-${MA_VER}/* ${DOCROOT}
+        mv magento2-${MA_VER}/.editorconfig ${DOCROOT}
+        mv magento2-${MA_VER}/.htaccess ${DOCROOT}
+        mv magento2-${MA_VER}/.php_cs.dist ${DOCROOT}
+        mv magento2-${MA_VER}/.user.ini ${DOCROOT}
+        rm -rf ${MA_VER}.tar.gz magento2-${MA_VER}
+        echoG 'Finished Composer install'
+        www_user_pass
+        silent mysql -u root -e 'status'
+        if [ ${?} = 0 ]; then
+            set_mariadb_root
+            WP_NAME='magento'
+            WP_USER='magento'
+            WP_PASS="${MYSQL_USER_PASS}"
+            set_mariadb_user
+        else
+            echoR 'Check DB status, abort!'
+            exit 1    
+        fi
+        echoG 'Run Composer install'
+        cd ${DOCROOT}
+        composer install
+        echoG 'Composer install finished'
+        if [ ! -e ${DOCROOT}/vendor/autoload.php ]; then
+            echoR "/vendor/autoload.php not found, need to check"
+            sleep 10
+            ls ${DOCROOT}/vendor/
+        fi    
+        echoG 'Install Magento...'
+        ./bin/magento setup:install \
+            --db-name=${WP_NAME} \
+            --db-user=${WP_USER} \
+            --db-password=${WP_PASS} \
+            --admin-user=${APP_ACCT} \
+            --admin-password=${APP_PASS} \
+            --admin-email=${EMAIL} \
+            --admin-firstname=test \
+            --admin-lastname=account \
+            --language=en_US \
+            --currency=USD \
+            --timezone=America/Chicago \
+            --use-rewrites=1 \
+            --backend-frontname=${MA_BACK_URL}
+        if [ ${?} = 0 ]; then
+            echoG 'Magento install finished'
+        else
+            echoR 'Not working properly!'    
+        fi 
+        echoG 'Clean magento cache'    
+        php bin/magento cache:clean
+        echoG 'Clean magento cache finished'
+        change_owner ${DOCROOT}
+    fi
+}
+
 gen_selfsigned_cert(){
     echoG 'Generate Cert'
     KEYNAME="${LSDIR}/conf/example.key"
@@ -756,7 +872,7 @@ webadmin
 csrconf
 }
 
-config_htaccess(){
+config_wp_htaccess(){
     echoG 'Setting WordPress'
     if [ ! -f ${DOCROOT}/.htaccess ]; then
         touch ${DOCROOT}/.htaccess
@@ -773,6 +889,15 @@ RewriteRule . /index.php [L]
 </IfModule>
 # END WordPress
 EOM
+}
+
+config_ma_htaccess(){
+    echoG 'Setting WordPress'
+    if [ ! -f ${DOCROOT}/.htaccess ]; then
+        echoR "${DOCROOT}/.htaccess not exist, skip"
+    else
+        sed -i '1i\<IfModule LiteSpeed>LiteMage on</IfModule>\' ${DOCROOT}/.htaccess
+    fi
 }
 
 config_wp(){
@@ -793,7 +918,7 @@ config_wp(){
     rm -f ${DOCROOT}/wp-content/plugins/*.zip
 }
 
-config_lscache(){
+install_lscache(){
     cd ${SCRIPTPATH}
     backup_old ${WPCONSTCONF}
     cp conf/const.default.ini ${DOCROOT}/wp-content/plugins/litespeed-cache/data/
@@ -814,6 +939,17 @@ w
 q
 END
     fi
+}
+
+install_litemage(){
+    echoG '[Start] Install LiteMage'
+    composer require litespeed/module-litemage
+    su ${USER} -c "php bin/magento deploy:mode:set developer; \
+        php bin/magento module:enable Litespeed_Litemage; \
+        php bin/magento setup:upgrade; \
+        php bin/magento setup:di:compile; \
+        php bin/magento deploy:mode:set production;"
+    echoG '[End] LiteMage install'
 }
 
 check_spec(){
@@ -862,12 +998,14 @@ config_php(){
     echoG 'Updating PHP Paremeter'
     NEWKEY='max_execution_time = 360'
     linechange 'max_execution_time' ${PHPINICONF} "${NEWKEY}"
-
     NEWKEY='post_max_size = 100M'
     linechange 'post_max_size' ${PHPINICONF} "${NEWKEY}"
-
     NEWKEY='upload_max_filesize = 100M'
     linechange 'upload_max_filesize' ${PHPINICONF} "${NEWKEY}"
+    NEWKEY="memory_limit = ${PHP_MEMORY}M"
+    linechange 'memory_limit' ${PHPINICONF} "${NEWKEY}"
+    ln -s /usr/local/lsws/lsphp${PHPVER}/bin/php${PHP_M}.${PHP_S} /usr/bin/php
+    killall lsphp >/dev/null 2>&1 
     echoG 'Finish PHP Paremeter'
 }
 
@@ -1045,28 +1183,37 @@ filepermission_update(){
 }
 
 renew_wpsalt(){
-    for KEY in "'AUTH_KEY'" "'SECURE_AUTH_KEY'" "'LOGGED_IN_KEY'" "'NONCE_KEY'" "'AUTH_SALT'" "'SECURE_AUTH_SALT'" "'LOGGED_IN_SALT'" "'NONCE_SALT'"
-    do
-        gen_salt
-        LINENUM=$(grep -n "${KEY}" ${WPCFPATH} | cut -d: -f 1)
-        sed -i "${LINENUM}d" ${WPCFPATH}
-        NEWSALT="define(${KEY}, '${GEN_SALT}');"
-        sed -i "${LINENUM}i${NEWSALT}" ${WPCFPATH}
-    done
+    if [ "${APP}" = 'wordpress' ]; then
+        for KEY in "'AUTH_KEY'" "'SECURE_AUTH_KEY'" "'LOGGED_IN_KEY'" "'NONCE_KEY'" "'AUTH_SALT'" "'SECURE_AUTH_SALT'" "'LOGGED_IN_SALT'" "'NONCE_SALT'"
+        do
+            gen_salt
+            LINENUM=$(grep -n "${KEY}" ${WPCFPATH} | cut -d: -f 1)
+            sed -i "${LINENUM}d" ${WPCFPATH}
+            NEWSALT="define(${KEY}, '${GEN_SALT}');"
+            sed -i "${LINENUM}i${NEWSALT}" ${WPCFPATH}
+        done
+    fi
 }
 
 renew_blowfish(){
-    gen_salt
-    LINENUM=$(grep -n "'blowfish_secret'" ${PHPMYCONF} | cut -d: -f 1)
-    sed -i "${LINENUM}d" ${PHPMYCONF}
-    NEW_SALT="\$cfg['blowfish_secret'] = '${GEN_SALT}';"
-    sed -i "${LINENUM}i${NEW_SALT}" ${PHPMYCONF}
+    if [ "${APP}" = 'wordpress' ]; then
+        gen_salt
+        LINENUM=$(grep -n "'blowfish_secret'" ${PHPMYCONF} | cut -d: -f 1)
+        sed -i "${LINENUM}d" ${PHPMYCONF}
+        NEW_SALT="\$cfg['blowfish_secret'] = '${GEN_SALT}';"
+        sed -i "${LINENUM}i${NEW_SALT}" ${PHPMYCONF}
+    fi
+}
+
+config_ma_main(){
+    install_litemage
+    config_ma_htaccess
 }
 
 config_wp_main(){
-    config_htaccess
+    config_wp_htaccess
     config_wp
-    config_lscache
+    install_lscache
 }
 
 more_secure(){
@@ -1113,9 +1260,14 @@ ubuntu_main_install(){
 ubuntu_main_config(){
     setup_lsws
     cpu_process
-    install_wordpress
-    config_wp_main
     config_php
+    if [ "${APP}" = 'wordpress' ]; then
+        install_wordpress
+        config_wp_main
+    elif [ "${APP}" = 'magento' ]; then
+        install_magento
+        config_ma_main
+    fi    
     ubuntu_config_memcached
     ubuntu_config_redis
     restart_lsws
@@ -1144,9 +1296,14 @@ centos_main_install(){
 centos_main_config(){
     setup_lsws
     cpu_process
-    install_wordpress
-    config_wp_main
     config_php
+    if [ "${APP}" = 'wordpress' ]; then
+        install_wordpress
+        config_wp_main
+    elif [ "${APP}" = 'magento' ]; then
+        install_magento
+        config_ma_main
+    fi
     centos_config_memcached
     centos_config_redis
     restart_lsws
@@ -1166,4 +1323,22 @@ main(){
     more_secure
     set_banner
 }
+
+while [ ! -z "${1}" ]; do
+    case ${1} in
+        -[hH] | -help | --help)
+            help_message 2
+            ;;
+        -[wW] | --wordpress) shift
+            APP='wordpress'
+            ;;
+        -[mM] | --magento) shift
+            APP='magento'
+            ;;         
+        *) 
+            help_message 2
+            ;;              
+    esac
+    shift
+done
 main
