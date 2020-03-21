@@ -28,13 +28,14 @@ apt install git -y
 ``` bash
 git clone https://github.com/Code-Egg/lsws1clk.git
 ```
+### WordPress
 ``` bash
-lsws1clk/lsws1clk.sh
+lsws1clk/lsws1clk.sh -W
 ```
-
-## Option
-No Option avaiable yet!
-
+### Magento
+``` bash
+lsws1clk/lsws1clk.sh -M
+```
 ## Benchmark
 * Test client: 
 online tool - [load.io](https://loader.io/) with 5000 clients 

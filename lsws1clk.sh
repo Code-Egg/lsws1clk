@@ -348,7 +348,7 @@ EOM
     elif [ "${APP}" = 'magento' ]; then
         cat >> ${DB_PASS_PATH} <<EOM
 root_mysql_pass="${MYSQL_ROOT_PASS}"
-wordpress_mysql_pass="${MYSQL_USER_PASS}"
+magento_mysql_pass="${MYSQL_USER_PASS}"
 EOM
     fi
 }
@@ -819,7 +819,7 @@ install_magento(){
         fi
         echoG 'Run Composer install'
         cd ${DOCROOT}
-        composer install
+        echo -ne '\n' | composer install
         echoG 'Composer install finished'
         if [ ! -e ${DOCROOT}/vendor/autoload.php ]; then
             echoR "/vendor/autoload.php not found, need to check"
@@ -950,6 +950,11 @@ install_litemage(){
         php bin/magento setup:di:compile; \
         php bin/magento deploy:mode:set production;"
     echoG '[End] LiteMage install'
+    php bin/magento cache:clean
+}
+
+config_litemage(){
+    bin/magento config:set --scope=default --scope-code=0 system/full_page_cache/caching_application LITEMAGE
 }
 
 check_spec(){
@@ -1208,6 +1213,7 @@ renew_blowfish(){
 config_ma_main(){
     install_litemage
     config_ma_htaccess
+    config_litemage
 }
 
 config_wp_main(){

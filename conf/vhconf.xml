@@ -67,14 +67,14 @@
     <cacheEngine>7</cacheEngine>
     <storage>
       <cacheStorePath>/var/www/html/lscache/</cacheStorePath>
-      <litemage>0</litemage>
+      <litemage>1</litemage>
     </storage>
   </cache>
   <contextList>
     <context>
       <type>NULL</type>
-      <uri>/phpmyadmin</uri>
-      <location>/var/www/phpmyadmin</location>
+      <uri>/phpmyadmin/</uri>
+      <location>/var/www/phpmyadmin/</location>
       <allowBrowse>1</allowBrowse>
       <indexFiles>index.php</indexFiles>
       <accessControl>
