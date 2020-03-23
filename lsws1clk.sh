@@ -336,10 +336,18 @@ gen_pass_file(){
 }
 
 update_pass_file(){
-    cat >> ${ADMIN_PASS_PATH} <<EOM
+    if [ "${APP}" = 'wordpress' ]; then
+        cat >> ${ADMIN_PASS_PATH} <<EOM
 admin_pass="${ADMIN_PASS}"
 EOM
-
+    elif [ "${APP}" = 'magento' ]; then
+        cat >> ${ADMIN_PASS_PATH} <<EOM
+admin_pass="${ADMIN_PASS}"
+Magento_admin_url="${MA_BACK_URL}"
+MagentO_admin="${APP_ACCT}"
+Magento_passd="${APP_PASS}"
+EOM    
+    fi
     if [ "${APP}" = 'wordpress' ]; then
         cat >> ${DB_PASS_PATH} <<EOM
 root_mysql_pass="${MYSQL_ROOT_PASS}"
@@ -943,7 +951,7 @@ END
 
 install_litemage(){
     echoG '[Start] Install LiteMage'
-    composer require litespeed/module-litemage
+    echo -ne '\n' | composer require litespeed/module-litemage
     su ${USER} -c "php bin/magento deploy:mode:set developer; \
         php bin/magento module:enable Litespeed_Litemage; \
         php bin/magento setup:upgrade; \
