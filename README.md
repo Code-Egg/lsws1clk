@@ -5,8 +5,9 @@ Description
 --------
 
 lsws1clk is a one-click installation script for LiteSpeed Web Server. Using this script,
-you can quickly and easily install LSWS + PHP + MariaDB + WordPress + LiteSpeed Cache + Object Cache
-
+you can quickly and easily install:
+1. LSWS + PHP + MariaDB + WordPress + LiteSpeed Cache + Object Cache
+2. LSWS + PHP + MariaDB + Magento2 + LiteMage
 The script come with trial license by default which has 15 days for free. After that, you may want to apply with your license. 
 License start from $0. [Read More](https://www.litespeedtech.com/products/litespeed-web-server/lsws-pricing)
 
@@ -35,6 +36,10 @@ lsws1clk/lsws1clk.sh -W
 ### Magento
 ``` bash
 lsws1clk/lsws1clk.sh -M
+```
+Install Magento + Sample data
+``` bash
+lsws1clk/lsws1clk.sh -M -S
 ```
 ## Benchmark
 * Test client: 

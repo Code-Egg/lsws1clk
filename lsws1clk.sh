@@ -2,11 +2,12 @@
 # /***************************************************************
 # LiteSpeed Latest
 # WordPress Latest 
+# Magento stable
 # LSCache Latest 
 # PHP 7.3 
 # MariaDB 10.4
-# Memcached
-# Redis
+# Memcached stable
+# Redis stable
 # PHPMyAdmin Latest
 # ****************************************************************/
 ### Author: Cold Egg
@@ -50,6 +51,7 @@ BANNERDST=''
 SKIP_WP=0
 SKIP_REDIS=0
 SKIP_MEMCA=0
+SAMPLE='false'
 OSNAMEVER=''
 OSNAME=''
 OSVER=''
@@ -93,11 +95,14 @@ help_message(){
         echoY 'Installation finished, please reopen the ssh console to see the banner.'
     ;;
     "2")
+        echo 'This script is for testing porpuse, so we just use www-data as the user.'
         echo -e "\033[1mOPTIONS\033[0m"
         echow '-W, --wordpress'
         echo "${EPACE}${EPACE}Example: lsws1clk.sh -W. If no input, script will still install wordpress by default"
         echow '-M, --magento'
         echo "${EPACE}${EPACE}Example: lsws1clk.sh -M"
+        echow '-M, --magento -S, --sample'
+        echo "${EPACE}${EPACE}Example: lsws1clk.sh -M -S, to install sample data"
         echow '-H, --help'
         echo "${EPACE}${EPACE}Display help and exit." 
         exit 0
@@ -346,7 +351,7 @@ admin_pass="${ADMIN_PASS}"
 Magento_admin_url="${MA_BACK_URL}"
 MagentO_admin="${APP_ACCT}"
 Magento_passd="${APP_PASS}"
-EOM    
+EOM
     fi
     if [ "${APP}" = 'wordpress' ]; then
         cat >> ${DB_PASS_PATH} <<EOM
@@ -379,6 +384,39 @@ restart_lsws(){
     echoG 'Restart LiteSpeed Web Server'
     ${LSDIR}/bin/lswsctrl restart >/dev/null 2>&1
 }
+
+test_page(){
+    local URL=$1
+    local KEYWORD=$2
+    local PAGENAME=$3
+
+    rm -rf tmp.tmp
+    wget --no-check-certificate -O tmp.tmp  $URL >/dev/null 2>&1
+    grep "$KEYWORD" tmp.tmp  >/dev/null 2>&1
+
+    if [ $? != 0 ] ; then
+        echoR "Error: $PAGENAME failed."
+        TESTGETERROR=yes
+    else
+        echoG "OK: $PAGENAME passed."
+    fi
+    rm tmp.tmp
+}
+
+test_ols_admin(){
+    test_page https://localhost:7080/ "LiteSpeed WebAdmin" "test webAdmin page"
+}
+
+test_wp_page(){
+    test_page http://localhost:80/  'data-continue' "test WordPress HTTP page"
+    test_page https://localhost:443/  'data-continue' "test WordPress HTTPS page"
+}
+
+test_magento_page(){
+    test_page http://localhost:80/  'Magento, Inc' "test Magento HTTP page"
+    test_page https://localhost:443/  'Magento, Inc' "test Magento HTTPS page"
+}
+
 
 ubuntu_pkg_basic(){
     echoG 'Install basic packages'
@@ -797,7 +835,7 @@ install_wordpress(){
 install_magento(){
     if [ -e ${DOCROOT}/index.php ]; then
         echoR "${DOCROOT}/index.php exist, skip."
-    else    
+    else
         install_composer
         rm -f ${MA_VER}.tar.gz
         wget -q --no-check-certificate https://github.com/magento/magento2/archive/${MA_VER}.tar.gz
@@ -855,9 +893,29 @@ install_magento(){
             echoR 'Not working properly!'    
         fi 
         echoG 'Clean magento cache'    
-        php bin/magento cache:clean
+        clean_magento_cache
         echoG 'Clean magento cache finished'
         change_owner ${DOCROOT}
+    fi
+}
+
+install_ma_sample(){
+    if [ "${SAMPLE}" = 'true' ]; then
+        echoG 'Start installing Magento 2 sample data'
+        git clone https://github.com/magento/magento2-sample-data.git
+        cd magento2-sample-data
+        git checkout ${MA_VER}
+        php -f dev/tools/build-sample-data.php -- --ce-source="${DOCROOT}"
+        echoG 'Update permission'
+        change_owner ${DOCROOT}; cd ${DOCROOT}
+        find . -type d -exec chmod g+ws {} +
+        rm -rf var/cache/* var/page_cache/* var/generation/*
+        echoG 'Upgrade'
+        su ${USER} -c 'php bin/magento setup:upgrade'
+        echoG 'Deploy static content'
+        su ${USER} -c 'php bin/magento setup:static-content:deploy'
+        clean_magento_cache
+        echoG 'End installing Magento 2 sample data'
     fi
 }
 
@@ -881,7 +939,7 @@ csrconf
 }
 
 config_wp_htaccess(){
-    echoG 'Setting WordPress'
+    echoG 'Setting WordPress htaccess'
     if [ ! -f ${DOCROOT}/.htaccess ]; then
         touch ${DOCROOT}/.htaccess
     fi
@@ -900,7 +958,7 @@ EOM
 }
 
 config_ma_htaccess(){
-    echoG 'Setting WordPress'
+    echoG 'Setting Magento htaccess'
     if [ ! -f ${DOCROOT}/.htaccess ]; then
         echoR "${DOCROOT}/.htaccess not exist, skip"
     else
@@ -949,6 +1007,11 @@ END
     fi
 }
 
+clean_magento_cache(){
+    php bin/magento cache:flush >/dev/null 2>&1
+    php bin/magento cache:clean >/dev/null 2>&1
+}
+
 install_litemage(){
     echoG '[Start] Install LiteMage'
     echo -ne '\n' | composer require litespeed/module-litemage
@@ -958,7 +1021,7 @@ install_litemage(){
         php bin/magento setup:di:compile; \
         php bin/magento deploy:mode:set production;"
     echoG '[End] LiteMage install'
-    php bin/magento cache:clean
+    clean_magento_cache
 }
 
 config_litemage(){
@@ -1218,6 +1281,16 @@ renew_blowfish(){
     fi
 }
 
+start_message(){
+    START_TIME="$(date -u +%s)"
+}
+
+end_message(){
+    END_TIME="$(date -u +%s)"
+    ELAPSED="$((${END_TIME}-${START_TIME}))"
+    echoY "***Total of ${ELAPSED} seconds to finish process***"
+}
+
 config_ma_main(){
     install_litemage
     config_ma_htaccess
@@ -1281,6 +1354,7 @@ ubuntu_main_config(){
     elif [ "${APP}" = 'magento' ]; then
         install_magento
         config_ma_main
+        install_ma_sample
     fi    
     ubuntu_config_memcached
     ubuntu_config_redis
@@ -1317,6 +1391,7 @@ centos_main_config(){
     elif [ "${APP}" = 'magento' ]; then
         install_magento
         config_ma_main
+        install_ma_sample
     fi
     centos_config_memcached
     centos_config_redis
@@ -1324,8 +1399,20 @@ centos_main_config(){
     change_owner ${DOCROOT}
 }
 
+verify_installation(){
+    echoG 'Start validate settings'
+    test_ols_admin
+    if [ "${APP}" = 'wordpress' ]; then
+        test_wp_page
+    elif [ "${APP}" = 'magento' ]; then
+        test_magento_page
+    fi
+    echoG 'End validate settings'
+}
+
 main(){
     init_check
+    start_message
     init_setup
     if [ ${OSNAME} = 'centos' ]; then
         centos_main_install
@@ -1335,6 +1422,8 @@ main(){
         ubuntu_main_config
     fi
     more_secure
+    verify_installation
+    end_message
     set_banner
 }
 
@@ -1343,12 +1432,15 @@ while [ ! -z "${1}" ]; do
         -[hH] | -help | --help)
             help_message 2
             ;;
-        -[wW] | --wordpress) shift
+        -[wW] | --wordpress)
             APP='wordpress'
             ;;
-        -[mM] | --magento) shift
+        -[mM] | --magento)
             APP='magento'
-            ;;         
+            ;;
+        -[sS] | --sample)
+            SAMPLE='true'
+            ;;       
         *) 
             help_message 2
             ;;              
