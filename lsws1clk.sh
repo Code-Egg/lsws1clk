@@ -758,7 +758,7 @@ ubuntu_install_php(){
 
 centos_install_php(){
     echoG 'Install PHP & Packages'
-    for PKG in '' -common -gd -pdo -imap -mbstring -imagick -mysqlnd -memcached -mcrypt -process -opcache -redis -json -xml -xmlrpc -intl; do
+    for PKG in '' -common -gd -pdo -imap -mbstring -imagick -mysqlnd -bcmath -soap -memcached -mcrypt -process -opcache -redis -json -xml -xmlrpc -intl; do
         /usr/bin/yum install lsphp${PHPVER}${PKG} -y >/dev/null 2>&1
     done
 
@@ -1080,7 +1080,7 @@ config_php(){
     linechange 'upload_max_filesize' ${PHPINICONF} "${NEWKEY}"
     NEWKEY="memory_limit = ${PHP_MEMORY}M"
     linechange 'memory_limit' ${PHPINICONF} "${NEWKEY}"
-    ln -s /usr/local/lsws/lsphp${PHPVER}/bin/php${PHP_M}.${PHP_S} /usr/bin/php
+    ln -s /usr/local/lsws/lsphp${PHPVER}/bin/php /usr/bin/php
     killall lsphp >/dev/null 2>&1 
     echoG 'Finish PHP Paremeter'
 }
