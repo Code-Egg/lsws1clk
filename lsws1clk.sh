@@ -892,9 +892,6 @@ install_magento(){
         else
             echoR 'Not working properly!'    
         fi 
-        echoG 'Clean magento cache'    
-        clean_magento_cache
-        echoG 'Clean magento cache finished'
         change_owner ${DOCROOT}
     fi
 }
@@ -914,7 +911,6 @@ install_ma_sample(){
         su ${USER} -c 'php bin/magento setup:upgrade'
         echoG 'Deploy static content'
         su ${USER} -c 'php bin/magento setup:static-content:deploy'
-        clean_magento_cache
         echoG 'End installing Magento 2 sample data'
     fi
 }
@@ -1008,6 +1004,7 @@ END
 }
 
 clean_magento_cache(){
+    cd ${DOCROOT}
     php bin/magento cache:flush >/dev/null 2>&1
     php bin/magento cache:clean >/dev/null 2>&1
 }
@@ -1423,6 +1420,7 @@ main(){
     fi
     more_secure
     verify_installation
+    clean_magento_cache
     end_message
     set_banner
 }
