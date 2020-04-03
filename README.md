@@ -1,4 +1,5 @@
 # lsws1clk
+[![Build Status](https://api.travis-ci.com/Code-Egg/lsws1clk.svg?branch=master)](https://github.com/Code-Egg/lsws1clk)
 [<img src="https://img.shields.io/badge/Made%20with-BASH-orange.svg">](https://en.wikipedia.org/wiki/Bash_(Unix_shell)) 
 
 Description
