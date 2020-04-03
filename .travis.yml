@@ -1,0 +1,13 @@
+language: shell
+os: linux
+dist: bionic
+
+
+notifications:
+  email:
+    on_success: never
+    on_failure: always
+
+script:
+  - git clone https://github.com/Code-Egg/lsws1clk.git
+  - sudo bash lsws1clk/lsws1clk.sh -W
