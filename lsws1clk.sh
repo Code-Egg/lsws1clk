@@ -36,6 +36,7 @@ REPOPATH=''
 WP_CLI='/usr/local/bin/wp'
 MA_COMPOSER='/usr/local/bin/composer'
 MA_VER='2.3.4'
+OC_VER='3.0.3.2'
 EMAIL='test@example.com'
 APP_ACCT='admin123'
 APP_PASS='password456'
@@ -51,6 +52,7 @@ BANNERDST=''
 SKIP_WP=0
 SKIP_REDIS=0
 SKIP_MEMCA=0
+app_skip=0
 SAMPLE='false'
 OSNAMEVER=''
 OSNAME=''
@@ -111,17 +113,7 @@ help_message(){
 }
 
 get_ip(){
-    if [ -e /sys/devices/virtual/dmi/id/product_uuid ] && [ "$(sudo cat /sys/devices/virtual/dmi/id/product_uuid | cut -c 1-3)" = 'EC2' ]; then
-        MYIP=$(curl http://169.254.169.254/latest/meta-data/public-ipv4)
-    elif [ "$(sudo dmidecode -s bios-vendor)" = 'Google' ]; then
-        MYIP=$(curl -H "Metadata-Flavor: Google" http://metadata/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip)
-    elif [ "$(dmidecode -s system-manufacturer)" = 'Microsoft Corporation' ];then
-        MYIP=$(curl -s http://checkip.amazonaws.com || printf "0.0.0.0")
-    elif [ "$(dmidecode -s system-product-name | cut -c 1-7)" = 'Alibaba' ]; then
-        MYIP=$(curl -s http://100.100.100.200/latest/meta-data/eipv4)
-    else
-        MYIP=$(ip -4 route get 8.8.8.8 | awk {'print $7'} | tr -d '\n')
-    fi
+    MYIP=$(curl -s http://checkip.amazonaws.com || printf "0.0.0.0")
 }
 
 line_change(){
@@ -808,20 +800,29 @@ install_composer(){
     fi    
 }
 
+set_db_user(){
+    silent mysql -u root -e 'status'
+    if [ ${?} = 0 ]; then
+        set_mariadb_root
+        WP_NAME="${APP}"
+        WP_USER="${APP}"      
+        WP_PASS="${MYSQL_USER_PASS}"
+        cd ${DOCROOT}
+        set_mariadb_user
+    else
+        echoR 'DB access failed, skip app setup!'
+        app_skip=1
+    fi    
+}
+
 install_wordpress(){
     if [ -e ${WPCFPATH} ]; then
         echoY 'WordPress already exist, skip WordPress setup !'
     else
         install_WP_CLI
-        silent mysql -u root -e 'status'
-        if [ ${?} = 0 ]; then
-            set_mariadb_root
-            WP_NAME='wordpress'
-            WP_USER='wordpress'
-            WP_PASS="${MYSQL_USER_PASS}"
-            echoG 'Install WordPress...'
-            cd ${DOCROOT}
-            set_mariadb_user
+        set_db_user
+        if [ ${app_skip} = 0 ]; then
+             echoG 'Install WordPress...'
             if [ ${SKIP_WP} = 0 ]; then
                 wget -q --no-check-certificate https://wordpress.org/latest.zip
                 unzip -q latest.zip
@@ -852,47 +853,38 @@ install_magento(){
         rm -rf ${MA_VER}.tar.gz magento2-${MA_VER}
         echoG 'Finished Composer install'
         www_user_pass
-        silent mysql -u root -e 'status'
-        if [ ${?} = 0 ]; then
-            set_mariadb_root
-            WP_NAME='magento'
-            WP_USER='magento'
-            WP_PASS="${MYSQL_USER_PASS}"
-            set_mariadb_user
-        else
-            echoR 'Check DB status, abort!'
-            exit 1    
-        fi
-        echoG 'Run Composer install'
-        cd ${DOCROOT}
-        echo -ne '\n' | composer install
-        echoG 'Composer install finished'
-        if [ ! -e ${DOCROOT}/vendor/autoload.php ]; then
-            echoR "/vendor/autoload.php not found, need to check"
-            sleep 10
-            ls ${DOCROOT}/vendor/
+        set_db_user
+        if [ ${app_skip} = 0 ]; then
+            echoG 'Run Composer install'
+            echo -ne '\n' | composer install
+            echoG 'Composer install finished'
+            if [ ! -e ${DOCROOT}/vendor/autoload.php ]; then
+                echoR "/vendor/autoload.php not found, need to check"
+                sleep 10
+                ls ${DOCROOT}/vendor/
+            fi    
+            echoG 'Install Magento...'
+            ./bin/magento setup:install \
+                --db-name=${WP_NAME} \
+                --db-user=${WP_USER} \
+                --db-password=${WP_PASS} \
+                --admin-user=${APP_ACCT} \
+                --admin-password=${APP_PASS} \
+                --admin-email=${EMAIL} \
+                --admin-firstname=test \
+                --admin-lastname=account \
+                --language=en_US \
+                --currency=USD \
+                --timezone=America/Chicago \
+                --use-rewrites=1 \
+                --backend-frontname=${MA_BACK_URL}
+            if [ ${?} = 0 ]; then
+                echoG 'Magento install finished'
+            else
+                echoR 'Not working properly!'    
+            fi 
+            change_owner ${DOCROOT}
         fi    
-        echoG 'Install Magento...'
-        ./bin/magento setup:install \
-            --db-name=${WP_NAME} \
-            --db-user=${WP_USER} \
-            --db-password=${WP_PASS} \
-            --admin-user=${APP_ACCT} \
-            --admin-password=${APP_PASS} \
-            --admin-email=${EMAIL} \
-            --admin-firstname=test \
-            --admin-lastname=account \
-            --language=en_US \
-            --currency=USD \
-            --timezone=America/Chicago \
-            --use-rewrites=1 \
-            --backend-frontname=${MA_BACK_URL}
-        if [ ${?} = 0 ]; then
-            echoG 'Magento install finished'
-        else
-            echoR 'Not working properly!'    
-        fi 
-        change_owner ${DOCROOT}
     fi
 }
 
@@ -914,6 +906,27 @@ install_ma_sample(){
         echoG 'End installing Magento 2 sample data'
     fi
 }
+
+install_opencart(){
+    set_db_user
+    if [ ${app_skip} = 0 ]; then
+        echoG 'Install OpenCart...'
+        get_ip    
+        wget -q https://github.com/opencart/opencart/releases/download/${OC_VER}/opencart-${OC_VER}.zip
+        unzip -q opencart-${OC_VER}.zip
+        php upload/install/cli_install.php install \
+            --db_hostname localhost \
+            --db_username ${WP_USER} \
+            --db_password ${WP_PASS} \
+            --db_database ${WP_NAME} \
+            --username ${APP_ACCT} \
+            --password ${APP_PASS} \
+            --email ${EMAIL} \
+            --http_server http://${MYIP}:80/
+        cp -iR ${DOCROOT}/upload/* ${DOCROOT}
+        change_owner ${DOCROOT}
+    fi
+}    
 
 gen_selfsigned_cert(){
     echoG 'Generate Cert'
@@ -1352,6 +1365,8 @@ ubuntu_main_config(){
         install_magento
         config_ma_main
         install_ma_sample
+    elif [ "${APP}" = 'opencart' ]; then        
+        install_opencart
     fi    
     ubuntu_config_memcached
     ubuntu_config_redis
@@ -1389,6 +1404,8 @@ centos_main_config(){
         install_magento
         config_ma_main
         install_ma_sample
+    elif [ "${APP}" = 'opencart' ]; then        
+        install_opencart
     fi
     centos_config_memcached
     centos_config_redis
@@ -1402,7 +1419,7 @@ verify_installation(){
     if [ "${APP}" = 'wordpress' ]; then
         test_wp_page
     elif [ "${APP}" = 'magento' ]; then
-        test_magento_page
+        test_magento_page    
     fi
     echoG 'End validate settings'
 }
@@ -1436,6 +1453,9 @@ while [ ! -z "${1}" ]; do
         -[mM] | --magento)
             APP='magento'
             ;;
+        -[oO] | --opencart)
+            APP='opencart'
+            ;;            
         -[sS] | --sample)
             SAMPLE='true'
             ;;       

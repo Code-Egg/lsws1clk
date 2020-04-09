@@ -43,6 +43,10 @@ lsws1clk/lsws1clk.sh -M
 ``` bash
 lsws1clk/lsws1clk.sh -M -S
 ```
+### OpenCart
+``` bash
+lsws1clk/lsws1clk.sh -O
+```
 
 ## Benchmark
 * Test client: 
