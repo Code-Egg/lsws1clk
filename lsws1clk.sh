@@ -41,6 +41,7 @@ EMAIL='test@example.com'
 APP_ACCT='admin123'
 APP_PASS='password456'
 MA_BACK_URL='admin_123'
+OC_BACK_URL='admin'
 MEMCACHECONF=''
 REDISSERVICE=''
 REDISCONF=''
@@ -95,6 +96,9 @@ help_message(){
     case ${1} in
     "1")
         echoY 'Installation finished, please reopen the ssh console to see the banner.'
+        if [ "${APP}" = 'opencart' ]; then
+            echo "Follow https://www.litespeedtech.com/support/wiki/doku.php/litespeed_wiki:cache:lscoc to seutp the cache."
+        fi    
     ;;
     "2")
         echo 'This script is for testing porpuse, so we just use www-data as the user.'
@@ -344,6 +348,13 @@ Magento_admin_url="${MA_BACK_URL}"
 MagentO_admin="${APP_ACCT}"
 Magento_passd="${APP_PASS}"
 EOM
+    elif [ "${APP}" = 'opencart' ]; then
+        cat >> ${ADMIN_PASS_PATH} <<EOM
+admin_pass="${ADMIN_PASS}"
+opencart_admin_url="${OC_BACK_URL}"
+opencart_admin="${APP_ACCT}"
+opencart_passd="${APP_PASS}"
+EOM
     fi
     if [ "${APP}" = 'wordpress' ]; then
         cat >> ${DB_PASS_PATH} <<EOM
@@ -354,6 +365,11 @@ EOM
         cat >> ${DB_PASS_PATH} <<EOM
 root_mysql_pass="${MYSQL_ROOT_PASS}"
 magento_mysql_pass="${MYSQL_USER_PASS}"
+EOM
+    elif [ "${APP}" = 'magento' ]; then
+        cat >> ${DB_PASS_PATH} <<EOM
+root_mysql_pass="${MYSQL_ROOT_PASS}"
+opencart_mysql_pass="${MYSQL_USER_PASS}"
 EOM
     fi
 }
@@ -408,7 +424,10 @@ test_magento_page(){
     test_page http://localhost:80/  'Magento, Inc' "test Magento HTTP page"
     test_page https://localhost:443/  'Magento, Inc' "test Magento HTTPS page"
 }
-
+test_opencart_page (){
+    test_page http://localhost:80/  'OpenCart' "test OpenCart HTTP page"
+    #test_page https://localhost:443/  'Opencart' "test Opencart HTTPS page"
+}
 
 ubuntu_pkg_basic(){
     echoG 'Install basic packages'
@@ -924,9 +943,14 @@ install_opencart(){
             --email ${EMAIL} \
             --http_server http://${MYIP}:80/
         cp -iR ${DOCROOT}/upload/* ${DOCROOT}
-        change_owner ${DOCROOT}
     fi
 }    
+
+fix_opencart_image(){
+    if [ "${APP}" = 'opencart' ]; then
+        cp -r ${DOCROOT}/upload/image/cache/* ${DOCROOT}/image/cache/
+    fi    
+}
 
 gen_selfsigned_cert(){
     echoG 'Generate Cert'
@@ -1419,7 +1443,9 @@ verify_installation(){
     if [ "${APP}" = 'wordpress' ]; then
         test_wp_page
     elif [ "${APP}" = 'magento' ]; then
-        test_magento_page    
+        test_magento_page
+    elif [ "${APP}" = 'opencart' ]; then
+        test_opencart_page           
     fi
     echoG 'End validate settings'
 }
@@ -1437,9 +1463,10 @@ main(){
     fi
     more_secure
     verify_installation
+    fix_opencart_image
     clean_magento_cache
-    end_message
     set_banner
+    end_message
 }
 
 while [ ! -z "${1}" ]; do
