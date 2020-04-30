@@ -1017,6 +1017,14 @@ config_wp(){
     rm -f ${DOCROOT}/wp-content/plugins/*.zip
 }
 
+get_theme_name(){
+    THEME_NAME=$(grep WP_DEFAULT_THEME ${DOCROOT}/wp-includes/default-constants.php | grep -v '!' | awk -F "'" '{print $4}')
+    echo "${THEME_NAME}" | grep 'twenty' >/dev/null 2>&1
+    if [ ${?} = 0 ]; then
+        THEME="${THEME_NAME}"
+    fi
+}
+
 install_lscache(){
     cd ${SCRIPTPATH}
     backup_old ${WPCONSTCONF}
@@ -1334,6 +1342,7 @@ config_ma_main(){
 config_wp_main(){
     config_wp_htaccess
     config_wp
+    get_theme_name
     install_lscache
 }
 
