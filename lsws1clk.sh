@@ -38,9 +38,9 @@ MA_COMPOSER='/usr/local/bin/composer'
 MA_VER='2.3.4'
 OC_VER='3.0.3.2'
 EMAIL='test@example.com'
-APP_ACCT='admin123'
-APP_PASS='password456'
-MA_BACK_URL='admin_123'
+APP_ACCT=''
+APP_PASS=''
+MA_BACK_URL=''
 OC_BACK_URL='admin'
 MEMCACHECONF=''
 REDISSERVICE=''
@@ -307,8 +307,13 @@ linechange(){
 gen_password(){
     if [ ! -f ${ADMIN_PASS_PATH} ]; then
         ADMIN_PASS=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 16 ; echo '')
+        APP_STR=$(shuf -i 100-999 -n1)
+        APP_PASS=$(openssl rand -hex 16)
+        APP_ACCT="admin${APP_STR}"
+        MA_BACK_URL="admin_${APP_STR}"        
     else
         ADMIN_PASS=$(grep admin_pass ${ADMIN_PASS_PATH} | awk -F'"' '{print $2}')
+
     fi
     if [ ! -f ${DB_PASS_PATH} ]; then
         MYSQL_ROOT_PASS=$(openssl rand -hex 24)
@@ -1323,6 +1328,18 @@ renew_blowfish(){
     fi
 }
 
+show_access(){
+    if [ "${APP}" = 'magento' ]; then
+        echo "Account: ${APP_ACCT}"
+        echo "Password: ${APP_PASS}"
+        echo "Admin_URL: ${MA_BACK_URL}"
+    elif [ "${APP}" = 'opencart' ]; then
+        echo "Account: ${APP_ACCT}"
+        echo "Password: ${APP_PASS}"
+        echo "Admin_URL: ${OC_BACK_URL}"      
+    fi    
+}
+
 start_message(){
     START_TIME="$(date -u +%s)"
 }
@@ -1475,6 +1492,7 @@ main(){
     fix_opencart_image
     clean_magento_cache
     set_banner
+    show_access    
     end_message
 }
 
