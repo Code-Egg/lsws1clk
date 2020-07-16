@@ -4,8 +4,8 @@
 # WordPress Latest 
 # Magento stable
 # LSCache Latest 
-# PHP 7.3 
-# MariaDB 10.4
+# PHP 7.4 
+# MariaDB 10.5
 # Memcached stable
 # Redis stable
 # PHPMyAdmin Latest
@@ -23,10 +23,10 @@ LSVCONF="${LSDIR}/DEFAULT/conf/vhconf.xml"
 USER=''
 GROUP=''
 THEME='twentytwenty'
-MARIAVER='10.4'
-PHPVER='73'
+MARIAVER='10.5'
+PHPVER='74'
 PHP_M='7'
-PHP_S='3'
+PHP_S='4'
 FIREWALLLIST="22 80 443"
 PHP_MEMORY='777'
 PHP_BIN="${LSDIR}/lsphp${PHPVER}/bin/lsphp"
