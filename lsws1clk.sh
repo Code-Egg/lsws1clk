@@ -4,7 +4,7 @@
 # WordPress Latest 
 # Magento stable
 # LSCache Latest 
-# PHP 7.3 
+# PHP 7.4 
 # MariaDB 10.4
 # Memcached stable
 # Redis stable
@@ -24,9 +24,9 @@ USER=''
 GROUP=''
 THEME='twentytwenty'
 MARIAVER='10.4'
-PHPVER='73'
+PHPVER='74'
 PHP_M='7'
-PHP_S='3'
+PHP_S='4'
 FIREWALLLIST="22 80 443"
 PHP_MEMORY='777'
 PHP_BIN="${LSDIR}/lsphp${PHPVER}/bin/lsphp"
@@ -35,8 +35,8 @@ WPCFPATH="${DOCROOT}/wp-config.php"
 REPOPATH=''
 WP_CLI='/usr/local/bin/wp'
 MA_COMPOSER='/usr/local/bin/composer'
-MA_VER='2.3.4'
-OC_VER='3.0.3.2'
+MA_VER='2.4.0'
+OC_VER='3.0.3.6'
 EMAIL='test@example.com'
 APP_ACCT=''
 APP_PASS=''
@@ -824,9 +824,38 @@ install_composer(){
         silent composer --version
         if [ ${?} != 0 ]; then
             echoR 'Issue with composer, Please check!'
+            exit 1
         fi        
     fi    
 }
+
+ubuntu_pkg_elasticsearch(){
+    if [ "${APP}" = 'magento' ]; then
+        echoG 'Install elasticsearch'
+        if [ ! -e /etc/elasticsearch ]; then    
+            curl -fsSL https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add - >/dev/null 2>&1
+            echo "deb https://artifacts.elastic.co/packages/7.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-7.x.list >/dev/null 2>&1
+            apt update >/dev/null 2>&1
+            apt install elasticsearch -y >/dev/null 2>&1
+            echoG 'Start elasticsearch service'
+            systemctl start elasticsearch.service >/dev/null 2>&1
+            if [ ${?} != 0 ]; then
+                echoR 'Issue with elasticsearch package, Please check!'
+                exit 1
+            fi
+            systemctl enable elasticsearch
+        else
+            echoG 'Elasticsearch already exist, skip!'
+        fi     
+        echoG 'Install elasticsearch finished'
+    fi
+}
+
+centos_pkg_elasticsearch(){
+    if [ "${APP}" = 'magento' ]; then
+        echoG 'Install elasticsearch' 
+    fi    
+}    
 
 set_db_user(){
     silent mysql -u root -e 'status'
@@ -1397,6 +1426,7 @@ ubuntu_pkg_main(){
     ubuntu_pkg_phpmyadmin
     ubuntu_pkg_certbot
     ubuntu_pkg_system
+    ubuntu_pkg_elasticsearch
     ubuntu_pkg_mariadb
 }
 
@@ -1436,6 +1466,7 @@ centos_pkg_main(){
     centos_pkg_phpmyadmin
     centos_pkg_certbot
     centos_pkg_system
+    centos_pkg_elasticsearch
     centos_pkg_mariadb
 }
 
