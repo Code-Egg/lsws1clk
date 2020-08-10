@@ -11,7 +11,7 @@
 # PHPMyAdmin Latest
 # ****************************************************************/
 ### Author: Cold Egg
-
+ 
 CMDFD='/opt'
 WWWFD='/var/www'
 DOCROOT='/var/www/html'
