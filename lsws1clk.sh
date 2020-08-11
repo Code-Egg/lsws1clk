@@ -1095,17 +1095,33 @@ clean_magento_cache(){
 install_litemage(){
     echoG '[Start] Install LiteMage'
     echo -ne '\n' | composer require litespeed/module-litemage
-    su ${USER} -c "php bin/magento deploy:mode:set developer; \
-        php bin/magento module:enable Litespeed_Litemage; \
-        php bin/magento setup:upgrade; \
-        php bin/magento setup:di:compile; \
-        php bin/magento deploy:mode:set production;"
+    check_els_service
+    su ${USER} -c "php bin/magento deploy:mode:set developer;"
+    su ${USER} -c "php bin/magento module:enable Litespeed_Litemage;"
+    su ${USER} -c "php bin/magento setup:upgrade;"
+    su ${USER} -c "php bin/magento setup:di:compile;"
+    check_els_service
+    su ${USER} -c "php bin/magento deploy:mode:set production;"
+    check_els_service
     echoG '[End] LiteMage install'
     clean_magento_cache
 }
 
 config_litemage(){
     bin/magento config:set --scope=default --scope-code=0 system/full_page_cache/caching_application LITEMAGE
+}
+
+check_els_service(){
+    if [ "${OSNAMEVER}" = 'UBUNTU20' ]; then
+        echoG 'Check elasticsearch service:'
+        service elasticsearch status | grep running
+        if [ ${?} = 0 ]; then 
+            echoG 'elasticsearch is running'
+        else
+            echoR 'elasticsearch is not running, start it!'
+            service elasticsearch start
+        fi
+    fi    
 }
 
 check_spec(){
