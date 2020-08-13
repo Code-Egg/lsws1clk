@@ -28,7 +28,8 @@ PHPVER='74'
 PHP_M='7'
 PHP_S='4'
 FIREWALLLIST="22 80 443"
-PHP_MEMORY='777'
+#FIREWALLLIST="22 80 443 7080 9200"
+PHP_MEMORY='999'
 PHP_BIN="${LSDIR}/lsphp${PHPVER}/bin/lsphp"
 PHPINICONF=""
 WPCFPATH="${DOCROOT}/wp-config.php"
@@ -843,7 +844,7 @@ ubuntu_pkg_elasticsearch(){
                 echoR 'Issue with elasticsearch package, Please check!'
                 exit 1
             fi
-            systemctl enable elasticsearch
+            systemctl enable elasticsearch >/dev/null 2>&1
         else
             echoG 'Elasticsearch already exist, skip!'
         fi     
@@ -854,6 +855,29 @@ ubuntu_pkg_elasticsearch(){
 centos_pkg_elasticsearch(){
     if [ "${APP}" = 'magento' ]; then
         echoG 'Install elasticsearch' 
+        if [ ! -e /etc/elasticsearch ]; then 
+            rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch >/dev/null 2>&1
+            cat << EOM > /etc/yum.repos.d/elasticsearch.repo
+[elasticsearch-7.x]
+name=Elasticsearch repository for 7.x packages
+baseurl=https://artifacts.elastic.co/packages/7.x/yum
+gpgcheck=1
+gpgkey=https://artifacts.elastic.co/GPG-KEY-elasticsearch
+enabled=1
+autorefresh=1
+type=rpm-md
+EOM
+            yum install elasticsearch -y >/dev/null 2>&1
+            systemctl start elasticsearch.service >/dev/null 2>&1
+            if [ ${?} != 0 ]; then
+                echoR 'Issue with elasticsearch package, Please check!'
+                exit 1
+            fi
+            systemctl enable elasticsearch.service >/dev/null 2>&1 
+        else
+            echoG 'Elasticsearch already exist, skip!'
+        fi
+        echoG 'Install elasticsearch finished'
     fi    
 }    
 
@@ -1088,8 +1112,9 @@ END
 
 clean_magento_cache(){
     cd ${DOCROOT}
-    php bin/magento cache:flush >/dev/null 2>&1
-    php bin/magento cache:clean >/dev/null 2>&1
+    su ${USER} -c "php bin/magento cache:flush" >/dev/null 2>&1
+    su ${USER} -c "php bin/magento cache:clean" >/dev/null 2>&1
+    change_owner ${DOCROOT}
 }
 
 install_litemage(){
@@ -1100,7 +1125,7 @@ install_litemage(){
     su ${USER} -c "php bin/magento module:enable Litespeed_Litemage;"
     su ${USER} -c "php bin/magento setup:upgrade;"
     su ${USER} -c "php bin/magento setup:di:compile;"
-    check_els_service
+    check_els_service 
     su ${USER} -c "php bin/magento deploy:mode:set production;"
     check_els_service
     echoG '[End] LiteMage install'
@@ -1525,6 +1550,9 @@ verify_installation(){
         test_opencart_page           
     fi
     echoG 'End validate settings'
+    echoG 'Cleanup cache.'
+    fix_opencart_image
+    clean_magento_cache
 }
 
 main(){
@@ -1540,10 +1568,8 @@ main(){
     fi
     more_secure
     verify_installation
-    fix_opencart_image
-    clean_magento_cache
     set_banner
-    show_access    
+    show_access 
     end_message
 }
 
