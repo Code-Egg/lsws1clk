@@ -24,11 +24,12 @@ USER=''
 GROUP=''
 THEME='twentytwenty'
 MARIAVER='10.4'
+DF_PHPVER='74'
 PHPVER='74'
 PHP_M='7'
 PHP_S='4'
-FIREWALLLIST="22 80 443"
-#FIREWALLLIST="22 80 443 7080 9200"
+#FIREWALLLIST="22 80 443"
+FIREWALLLIST="22 80 443 7080 9200"
 PHP_MEMORY='999'
 PHP_BIN="${LSDIR}/lsphp${PHPVER}/bin/lsphp"
 PHPINICONF=""
@@ -38,11 +39,13 @@ WP_CLI='/usr/local/bin/wp'
 MA_COMPOSER='/usr/local/bin/composer'
 MA_VER='2.4.0'
 OC_VER='3.0.3.6'
+PS_VER='1.7.6.7'
 EMAIL='test@example.com'
 APP_ACCT=''
 APP_PASS=''
 MA_BACK_URL=''
 OC_BACK_URL='admin'
+PS_BACK_URL='admin'
 MEMCACHECONF=''
 REDISSERVICE=''
 REDISCONF=''
@@ -110,6 +113,10 @@ help_message(){
         echo "${EPACE}${EPACE}Example: lsws1clk.sh -M"
         echow '-M, --magento -S, --sample'
         echo "${EPACE}${EPACE}Example: lsws1clk.sh -M -S, to install sample data"
+        echow '-O, --opencart'
+        echo "${EPACE}${EPACE}Example: lsws1clk.sh -O"
+        echow '-P, --prestashop'
+        echo "${EPACE}${EPACE}Example: lsws1clk.sh -P"                
         echow '-H, --help'
         echo "${EPACE}${EPACE}Display help and exit." 
         exit 0
@@ -250,6 +257,15 @@ provider_ck()
     fi
 }
 
+phpver_ck(){
+    if [ "${APP}" = 'prestashop' ]; then
+        echoG 'Current Prestashop support PHP 72 only, update to 72!'
+        PHPVER='72'
+        PHP_M='7'
+        PHP_S='2'
+    fi    
+}
+
 os_hm_path()
 {
     if [ ${PROVIDER} = 'aws' ] && [ -d /home/ubuntu ]; then
@@ -365,6 +381,13 @@ opencart_admin_url="${OC_BACK_URL}"
 opencart_admin="${APP_ACCT}"
 opencart_passd="${APP_PASS}"
 EOM
+    elif [ "${APP}" = 'prestashop' ]; then
+        cat >> ${ADMIN_PASS_PATH} <<EOM
+admin_pass="${ADMIN_PASS}"
+prestashop_admin_url="${PS_BACK_URL}"
+prestashop_admin="${EMAIL}"
+prestashop_passd="${APP_PASS}"
+EOM
     fi
     if [ "${APP}" = 'wordpress' ]; then
         cat >> ${DB_PASS_PATH} <<EOM
@@ -376,10 +399,15 @@ EOM
 root_mysql_pass="${MYSQL_ROOT_PASS}"
 magento_mysql_pass="${MYSQL_USER_PASS}"
 EOM
-    elif [ "${APP}" = 'magento' ]; then
+    elif [ "${APP}" = 'opencart' ]; then
         cat >> ${DB_PASS_PATH} <<EOM
 root_mysql_pass="${MYSQL_ROOT_PASS}"
 opencart_mysql_pass="${MYSQL_USER_PASS}"
+EOM
+    elif [ "${APP}" = 'prestashop' ]; then
+        cat >> ${DB_PASS_PATH} <<EOM
+root_mysql_pass="${MYSQL_ROOT_PASS}"
+prestashop_mysql_pass="${MYSQL_USER_PASS}"
 EOM
     fi
 }
@@ -438,6 +466,11 @@ test_opencart_page (){
     test_page http://localhost:80/  'OpenCart' "test OpenCart HTTP page"
     #test_page https://localhost:443/  'Opencart' "test Opencart HTTPS page"
 }
+test_prestashop_page (){
+    test_page http://localhost:80/  'PrestaShop' "test PrestaShop HTTP page"
+    test_page https://localhost:443/  'PrestaShop' "test PrestaShop HTTPS page"
+}
+
 
 ubuntu_pkg_basic(){
     echoG 'Install basic packages'
@@ -1008,10 +1041,36 @@ install_opencart(){
     fi
 }    
 
+install_prestashop(){
+    set_db_user
+    if [ ${app_skip} = 0 ]; then
+        echoG 'Install Prestashop...'
+        get_ip
+        wget -q https://download.prestashop.com/download/releases/prestashop_${PS_VER}.zip
+        unzip -q prestashop_${PS_VER}.zip; mv index.php /tmp/
+        unzip -q prestashop.zip
+        php install/index_cli.php \
+            --domain="${MYIP}" \
+            --db_server=127.0.0.1 \
+            --db_name=${WP_NAME} \
+            --db_user=${WP_USER} \
+            --db_password=${WP_PASS} \
+            --email=${EMAIL} \
+            --password=${APP_PASS};
+    fi
+    mv install install.bk
+}    
+
 fix_opencart_image(){
     if [ "${APP}" = 'opencart' ]; then
         cp -r ${DOCROOT}/upload/image/cache/* ${DOCROOT}/image/cache/
     fi    
+}
+
+add_entry_hosts(){
+    if [ "${APP}" = 'prestashop' ]; then
+        echo "${MYIP} ${DOMAIN_URL}" >> /etc/hosts
+    fi
 }
 
 gen_selfsigned_cert(){
@@ -1172,10 +1231,13 @@ setup_lsws(){
     backup_old ${LSCONF}
     backup_old ${LSVCONF}
     cp conf/httpd_config.xml ${LSDIR}/conf/
-    cp conf/vhconf.xml ${LSDIR}/DEFAULT/conf/    
+    cp conf/vhconf.xml ${LSDIR}/DEFAULT/conf/
      if [ "${OSNAME}" = 'centos' ]; then
         sed -i "s/www-data/${USER}/g" ${LSCONF}
         sed -i "s|/usr/local/lsws/lsphp${PHP_P}${PHP_S}/bin/lsphp|/usr/bin/lsphp|g" ${LSCONF}
+    fi
+    if [ "${DF_PHPVER}" != "${PHPVER}" ]; then
+        sed -i "s/${DF_PHPVER}/${PHPVER}/g" ${LSCONF}
     fi
     gen_selfsigned_cert
 }
@@ -1410,7 +1472,11 @@ show_access(){
     elif [ "${APP}" = 'opencart' ]; then
         echo "Account: ${APP_ACCT}"
         echo "Password: ${APP_PASS}"
-        echo "Admin_URL: ${OC_BACK_URL}"      
+        echo "Admin_URL: ${OC_BACK_URL}"
+    elif [ "${APP}" = 'prestashop' ]; then
+        echo "Account: ${EMAIL}"
+        echo "Password: ${APP_PASS}"
+        echo "Admin_URL: ${PS_BACK_URL}"         
     fi    
 }
 
@@ -1446,6 +1512,7 @@ more_secure(){
 
 init_check(){
     check_os
+    phpver_ck
     path_update
     provider_ck
     os_hm_path
@@ -1492,6 +1559,8 @@ ubuntu_main_config(){
         install_ma_sample
     elif [ "${APP}" = 'opencart' ]; then        
         install_opencart
+    elif [ "${APP}" = 'prestashop' ]; then        
+        install_prestashop
     fi    
     ubuntu_config_memcached
     ubuntu_config_redis
@@ -1532,6 +1601,8 @@ centos_main_config(){
         install_ma_sample
     elif [ "${APP}" = 'opencart' ]; then        
         install_opencart
+    elif [ "${APP}" = 'prestashop' ]; then        
+        install_prestashop  
     fi
     centos_config_memcached
     centos_config_redis
@@ -1547,7 +1618,9 @@ verify_installation(){
     elif [ "${APP}" = 'magento' ]; then
         test_magento_page
     elif [ "${APP}" = 'opencart' ]; then
-        test_opencart_page           
+        test_opencart_page
+    elif [ "${APP}" = 'prestashop' ]; then
+        test_prestashop_page                   
     fi
     echoG 'End validate settings'
     echoG 'Cleanup cache.'
@@ -1586,7 +1659,10 @@ while [ ! -z "${1}" ]; do
             ;;
         -[oO] | --opencart)
             APP='opencart'
-            ;;            
+            ;;
+        -[pP] | --prestashop)
+            APP='prestashop'
+            ;;                       
         -[sS] | --sample)
             SAMPLE='true'
             ;;       

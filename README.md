@@ -47,6 +47,10 @@ lsws1clk/lsws1clk.sh -M -S
 ``` bash
 lsws1clk/lsws1clk.sh -O
 ```
+### PrestaShop
+``` bash
+lsws1clk/lsws1clk.sh -P
+```
 
 ## Benchmark
 * Test client: 
