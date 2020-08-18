@@ -1067,12 +1067,6 @@ fix_opencart_image(){
     fi    
 }
 
-add_entry_hosts(){
-    if [ "${APP}" = 'prestashop' ]; then
-        echo "${MYIP} ${DOMAIN_URL}" >> /etc/hosts
-    fi
-}
-
 gen_selfsigned_cert(){
     echoG 'Generate Cert'
     KEYNAME="${LSDIR}/conf/example.key"
@@ -1195,6 +1189,14 @@ config_litemage(){
     bin/magento config:set --scope=default --scope-code=0 system/full_page_cache/caching_application LITEMAGE
 }
 
+install_ps_cache(){
+    echoG '[Start] Install PrestaShop LSCache'
+    cd ${DOCROOT}
+    wget -q https://www.litespeedtech.com/packages/prestashop/litespeedcache.zip
+    ./bin/console prestashop:module install litespeedcache.zip
+    echoG '[End] PrestaShop LSCach install'
+}    
+
 check_els_service(){
     if [ "${OSNAMEVER}" = 'UBUNTU20' ]; then
         echoG 'Check elasticsearch service:'
@@ -1238,6 +1240,9 @@ setup_lsws(){
     fi
     if [ "${DF_PHPVER}" != "${PHPVER}" ]; then
         sed -i "s/${DF_PHPVER}/${PHPVER}/g" ${LSCONF}
+    fi
+    if [ "${APP}" != 'magento' ]; then
+        sed -i 's/<litemage>2/<litemage>0/g' ${LSVCONF}
     fi
     gen_selfsigned_cert
 }
