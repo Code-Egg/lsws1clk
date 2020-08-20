@@ -7,30 +7,32 @@ Description
 
 lsws1clk is a one-click installation script for LiteSpeed Web Server. Using this script,
 you can quickly and easily install:
-1. LSWS + PHP + MariaDB + WordPress + LiteSpeed Cache + Object Cache
-2. LSWS + PHP + MariaDB + Magento2 + LiteMage
+| LSWS+PHP+DB|Application|Cache Plugin|
+| :-------------: | :-------------: | :-------------: |
+| V |WordPress | V|
+| V |Magento2 | V |
+|V|OpenCart||
+|V|PrestaShop||
 
 The script come with trial license by default which has 15 days for free. After that, you may want to apply with your license. 
 License start from $0. [Read More](https://www.litespeedtech.com/products/litespeed-web-server/lsws-pricing)
 
 # How to use
 ---------
+This script is design for one application quick install and testing porpuse. 
 
 ## Install Pre-Requisites
 For CentOS/RHEL Based Systems
 ```bash
-yum install git -y
+yum install git -y; git clone https://github.com/Code-Egg/lsws1clk.git
 ```
 
 For Debian/Ubuntu Based Systems
 ```bash
-apt install git -y
+apt install git -y; git clone https://github.com/Code-Egg/lsws1clk.git
 ```
 
 ## Install
-``` bash
-git clone https://github.com/Code-Egg/lsws1clk.git
-```
 ### WordPress
 ``` bash
 lsws1clk/lsws1clk.sh -W

@@ -830,8 +830,13 @@ set_mariadb_user(){
 }
 
 www_user_pass(){
-    LINENUM=$(grep -n -m1 www-data /etc/passwd | awk -F ':' '{print $1}')
-    sed -i "${LINENUM}s|/usr/sbin/nologin|/bin/bash|" /etc/passwd
+    if [ "${OSNAME}" = "centos" ]; then
+        LINENUM=$(grep -n -m1 nobody /etc/passwd | awk -F ':' '{print $1}')
+        sed -i "${LINENUM}s|sbin/nologin|/bin/bash|" /etc/passwd   
+    elif [ "${OSNAME}" = 'ubuntu' ] || [ "${OSNAME}" = 'debian' ]; then
+        LINENUM=$(grep -n -m1 www-data /etc/passwd | awk -F ':' '{print $1}')
+        sed -i "${LINENUM}s|/usr/sbin/nologin|/bin/bash|" /etc/passwd    
+    fi   
 }
 
 install_WP_CLI(){
