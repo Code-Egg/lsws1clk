@@ -1247,7 +1247,7 @@ setup_lsws(){
         sed -i "s/${DF_PHPVER}/${PHPVER}/g" ${LSCONF}
     fi
     if [ "${APP}" != 'magento' ]; then
-        sed -i 's/<litemage>2/<litemage>0/g' ${LSVCONF}
+        sed -i 's/<litemage>1/<litemage>0/g' ${LSVCONF}
     fi
     gen_selfsigned_cert
 }
