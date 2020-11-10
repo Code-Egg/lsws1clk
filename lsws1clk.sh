@@ -1254,6 +1254,26 @@ setup_lsws(){
     gen_selfsigned_cert
 }
 
+setup_pure_lsws(){
+    echoG 'Setting LSWS Config'
+    cd ${SCRIPTPATH}
+    backup_old ${LSCONF}
+    backup_old ${LSVCONF}
+    cp conf/httpd_config.xml ${LSDIR}/conf/
+    cp conf/pure/vhconf.xml ${LSDIR}/DEFAULT/conf/
+     if [ "${OSNAME}" = 'centos' ]; then
+        sed -i "s/www-data/${USER}/g" ${LSCONF}
+        sed -i "s|/usr/local/lsws/lsphp${PHP_P}${PHP_S}/bin/lsphp|/usr/bin/lsphp|g" ${LSCONF}
+    fi
+    if [ "${DF_PHPVER}" != "${PHPVER}" ]; then
+        sed -i "s/${DF_PHPVER}/${PHPVER}/g" ${LSCONF}
+    fi
+    if [ "${APP}" != 'magento' ]; then
+        sed -i 's/<litemage>1/<litemage>0/g' ${LSVCONF}
+    fi
+    gen_selfsigned_cert
+}
+
 landing_pg(){
     echoG 'Setting Landing Page'
     curl -s https://raw.githubusercontent.com/litespeedtech/ls-cloud-image/master/Static/wp-landing.html \
@@ -1655,7 +1675,7 @@ pure_main(){
         install_lsws
         ubuntu_install_php
     fi
-    setup_lsws
+    setup_pure_lsws
     config_php 
     restart_lsws
     change_owner ${DOCROOT}    
