@@ -116,7 +116,9 @@ help_message(){
         echow '-O, --opencart'
         echo "${EPACE}${EPACE}Example: lsws1clk.sh -O"
         echow '-P, --prestashop'
-        echo "${EPACE}${EPACE}Example: lsws1clk.sh -P"                
+        echo "${EPACE}${EPACE}Example: lsws1clk.sh -P"
+        echow '--pure'
+        echo "${EPACE}${EPACE}Example: lsws1clk.sh --pure. It will install pure LSWS + PHP only."
         echow '-H, --help'
         echo "${EPACE}${EPACE}Display help and exit." 
         exit 0
@@ -1638,6 +1640,28 @@ verify_installation(){
     clean_magento_cache
 }
 
+pure_main(){
+    init_check
+    start_message
+    init_setup
+    if [ ${OSNAME} = 'centos' ]; then
+        centos_sysupdate
+        centos_pkg_basic
+        install_lsws
+        centos_install_php
+    else
+        ubuntu_sysupdate
+        ubuntu_pkg_basic
+        install_lsws
+        ubuntu_install_php
+    fi
+    setup_lsws
+    config_php 
+    restart_lsws
+    change_owner ${DOCROOT}    
+    exit 0
+}
+
 main(){
     init_check
     start_message
@@ -1675,7 +1699,10 @@ while [ ! -z "${1}" ]; do
             ;;                       
         -[sS] | --sample)
             SAMPLE='true'
-            ;;       
+            ;;
+        --pure)
+            pure_main
+            ;;           
         *) 
             help_message 2
             ;;              
