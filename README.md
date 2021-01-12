@@ -72,5 +72,5 @@ WordPress v5.3 main page
 ![](/img/loader-3.png)
 
 # Problems/Suggestions/Feedback/Contribution
-Please raise an issue on the repository, or send a PR for contributing.
+Please raise an issue on the repository, or send a PR for contributing. 
 
