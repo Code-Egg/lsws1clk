@@ -1,7 +1,7 @@
 language: shell
 os: linux
 dist: bionic
-if: branch = master
+#if: branch = master
 
 notifications:
   email:
