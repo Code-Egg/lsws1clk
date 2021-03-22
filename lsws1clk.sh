@@ -28,7 +28,6 @@ DF_PHPVER='74'
 PHPVER='74'
 PHP_M='7'
 PHP_S='4'
-#FIREWALLLIST="22 80 443"
 FIREWALLLIST="22 80 443 7080 9200"
 PHP_MEMORY='999'
 PHP_BIN="${LSDIR}/lsphp${PHPVER}/bin/lsphp"
@@ -37,9 +36,10 @@ WPCFPATH="${DOCROOT}/wp-config.php"
 REPOPATH=''
 WP_CLI='/usr/local/bin/wp'
 MA_COMPOSER='/usr/local/bin/composer'
-MA_VER='2.4.0'
-OC_VER='3.0.3.6'
+MA_VER='2.4.2'
+OC_VER='3.0.3.7'
 PS_VER='1.7.6.7'
+COMPOSER_VER='1.10.20'
 EMAIL='test@example.com'
 APP_ACCT=''
 APP_PASS=''
@@ -860,7 +860,8 @@ install_composer(){
     if [ -e ${MA_COMPOSER} ]; then
         echoG 'Composer already exist'
     else
-        curl -sS https://getcomposer.org/installer | php
+        wget -qO composer-setup.php https://getcomposer.org/installer
+        php composer-setup.php --version ${COMPOSER_VER}
         mv composer.phar ${MA_COMPOSER}
         silent composer --version
         if [ ${?} != 0 ]; then

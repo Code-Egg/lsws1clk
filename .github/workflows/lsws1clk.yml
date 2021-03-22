@@ -1,0 +1,22 @@
+name: lsws1clk.yml
+
+on:
+  push:
+    branches:
+      - master
+
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+    matrix:
+      APP: ['W', 'M']
+    steps:
+      - uses: actions/checkout@v2
+      - name: lsws1clk test
+        run: sudo bash -x lsws1clk/lsws1clk.sh "-$APP"
+          
