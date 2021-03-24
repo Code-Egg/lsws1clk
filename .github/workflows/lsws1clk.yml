@@ -1,4 +1,4 @@
-name: lsws1clk.yml
+name: lsws1clk
 
 on:
   push:
