@@ -580,15 +580,13 @@ ubuntu_pkg_mariadb(){
         if [ "$(grep "mariadb.*${MARIAVER}" /etc/apt/sources.list)" = '' ]; then
             echoR '[Failed] to add MariaDB repository'
         fi
-        apt update
+        silent apt update
         DEBIAN_FRONTEND=noninteractive apt -y -o Dpkg::Options::='--force-confdef' \
-            -o Dpkg::Options::='--force-confold' install mariadb-server
-        #silent apt update
-        #DEBIAN_FRONTEND=noninteractive apt -y -o Dpkg::Options::='--force-confdef' \
-        #    -o Dpkg::Options::='--force-confold' install mariadb-server >/dev/null 2>&1            
+            -o Dpkg::Options::='--force-confold' install mariadb-server >/dev/null 2>&1            
     fi
     systemctl start mariadb
     systemctl status mariadb.service
+    cat /etc/mysql/my.cnf
     local DBSTATUS=$(systemctl is-active mariadb)
     if [ ${DBSTATUS} = active ]; then
         echoG "MARIADB is: ${DBSTATUS}"
