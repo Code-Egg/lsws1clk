@@ -587,7 +587,7 @@ ubuntu_pkg_mariadb(){
     systemctl start mariadb
     systemctl status mariadb.service
     grep -iR innodb_buffer_pool_size /etc/mysql/*
-    if [ $? != 0 ]; 
+    if [ $? != 0 ]; then
         echo 'innodb_buffer_pool_size noy found'
         echo 'innodb_buffer_pool_size=256M' >> /etc/mysql/my.cnf
         systemctl restart mariadb
