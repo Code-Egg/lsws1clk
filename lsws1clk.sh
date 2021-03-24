@@ -587,6 +587,11 @@ ubuntu_pkg_mariadb(){
     systemctl start mariadb
     systemctl status mariadb.service
     grep -iR innodb_buffer_pool_size /etc/mysql/*
+    if [ $? != 0 ]; 
+        echo 'innodb_buffer_pool_size noy found'
+        echo 'innodb_buffer_pool_size=256M' >> /etc/mysql/my.cnf
+        systemctl restart mariadb
+    fi    
     local DBSTATUS=$(systemctl is-active mariadb)
     if [ ${DBSTATUS} = active ]; then
         echoG "MARIADB is: ${DBSTATUS}"
