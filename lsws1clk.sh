@@ -574,7 +574,9 @@ ubuntu_pkg_mariadb(){
         fi
         echoG "Install Mariadb ${MARIAVER}"
         silent apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8
-        silent add-apt-repository "deb [arch=amd64,arm64,ppc64el] http://mirror.lstn.net/mariadb/repo/${MARIAVER}/ubuntu bionic main"
+        #silent add-apt-repository "deb [arch=amd64,arm64,ppc64el] http://mirror.lstn.net/mariadb/repo/${MARIAVER}/ubuntu bionic main"
+        add-apt-repository "deb [arch=amd64,arm64,ppc64el] http://mirror.lstn.net/mariadb/repo/${MARIAVER}/ubuntu focal main"
+
         if [ "$(grep "mariadb.*${MARIAVER}" /etc/apt/sources.list)" = '' ]; then
             echoR '[Failed] to add MariaDB repository'
         fi
@@ -586,6 +588,7 @@ ubuntu_pkg_mariadb(){
         #    -o Dpkg::Options::='--force-confold' install mariadb-server >/dev/null 2>&1            
     fi
     systemctl start mariadb
+    systemctl status mariadb.service
     local DBSTATUS=$(systemctl is-active mariadb)
     if [ ${DBSTATUS} = active ]; then
         echoG "MARIADB is: ${DBSTATUS}"
