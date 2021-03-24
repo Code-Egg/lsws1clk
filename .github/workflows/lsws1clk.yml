@@ -14,9 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        APP: ['W', 'M']
+        APP: [W, M]
     steps:
       - uses: actions/checkout@v2
       - name: lsws1clk test
-        run: sudo bash -x lsws1clk.sh "-$APP"
+        run: sudo bash -x lsws1clk.sh "-${{matrix.APP}}"
           
