@@ -1,5 +1,5 @@
 # lsws1clk 
-[![Build Status](https://github.com/Code-Egg/lsws1clk/workflows/docker-build/badge.svg)](https://github.com/Code-Egg/lsws1clk/actions)
+[![Build Status](https://github.com/Code-Egg/lsws1clk/workflows/lsws1clk/badge.svg)](https://github.com/Code-Egg/lsws1clk/actions)
 [<img src="https://img.shields.io/badge/Made%20with-BASH-orange.svg">](https://en.wikipedia.org/wiki/Bash_(Unix_shell)) 
 
 Description
