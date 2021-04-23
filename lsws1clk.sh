@@ -38,7 +38,7 @@ WP_CLI='/usr/local/bin/wp'
 MA_COMPOSER='/usr/local/bin/composer'
 MA_VER='2.4.2'
 OC_VER='3.0.3.7'
-PS_VER='1.7.6.7'
+PS_VER='1.7.7.3'
 COMPOSER_VER='1.10.20'
 EMAIL='test@example.com'
 APP_ACCT=''
@@ -1202,7 +1202,7 @@ config_litemage(){
 install_ps_cache(){
     echoG '[Start] Install PrestaShop LSCache'
     cd ${DOCROOT}
-    wget -q https://www.litespeedtech.com/packages/prestashop/litespeedcache.zip
+    wget -q https://www.litespeedtech.com/packages/prestashop/bk/litespeedcache.zip
     ./bin/console prestashop:module install litespeedcache.zip
     echoG '[End] PrestaShop LSCach install'
 }    
@@ -1596,6 +1596,7 @@ ubuntu_main_config(){
         install_opencart
     elif [ "${APP}" = 'prestashop' ]; then        
         install_prestashop
+        install_ps_cache
     fi    
     ubuntu_config_memcached
     ubuntu_config_redis
