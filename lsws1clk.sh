@@ -36,6 +36,7 @@ WPCFPATH="${DOCROOT}/wp-config.php"
 REPOPATH=''
 WP_CLI='/usr/local/bin/wp'
 MA_COMPOSER='/usr/local/bin/composer'
+LS_VER='6.0.6'
 MA_VER='2.4.2'
 OC_VER='3.0.3.7'
 PS_VER='1.7.7.3'
@@ -59,6 +60,7 @@ SKIP_REDIS=0
 SKIP_MEMCA=0
 app_skip=0
 SAMPLE='false'
+LICENSE='TRIAL'
 OSNAMEVER=''
 OSNAME=''
 OSVER=''
@@ -71,6 +73,13 @@ silent() {
   else
     "$@" >/dev/null 2>&1
   fi
+}
+
+check_input(){
+    if [ -z "${1}" ];then
+        help_message 2
+        exit 1
+    fi
 }
 
 create_doc_fd(){
@@ -117,6 +126,10 @@ help_message(){
         echo "${EPACE}${EPACE}Example: lsws1clk.sh -O"
         echow '-P, --prestashop'
         echo "${EPACE}${EPACE}Example: lsws1clk.sh -P"
+        echow '--mautic'
+        echo "${EPACE}${EPACE}Example: lsws1clk.sh --mautic"        
+        echow '-L, --license'
+        echo "${EPACE}${EPACE}Example: lsws1clk.sh -L, to use specified LSWS serial number."        
         echow '--pure'
         echo "${EPACE}${EPACE}Example: lsws1clk.sh --pure. It will install pure LSWS + PHP only."
         echow '-H, --help'
@@ -390,26 +403,45 @@ prestashop_admin_url="${PS_BACK_URL}"
 prestashop_admin="${EMAIL}"
 prestashop_passd="${APP_PASS}"
 EOM
+    if [ "${APP}" = 'mautic' ]; then
+        cat >> ${ADMIN_PASS_PATH} <<EOM
+admin_pass="${ADMIN_PASS}"
+EOM
     fi
     if [ "${APP}" = 'wordpress' ]; then
         cat >> ${DB_PASS_PATH} <<EOM
 root_mysql_pass="${MYSQL_ROOT_PASS}"
-wordpress_mysql_pass="${MYSQL_USER_PASS}"
+APP_DB_NAME="${APP}"
+APP_DB_USER_NAME="${APP}"
+APP_DB_pass="${MYSQL_USER_PASS}"
 EOM
     elif [ "${APP}" = 'magento' ]; then
         cat >> ${DB_PASS_PATH} <<EOM
 root_mysql_pass="${MYSQL_ROOT_PASS}"
-magento_mysql_pass="${MYSQL_USER_PASS}"
+APP_DB_NAME="${APP}"
+APP_DB_USER_NAME="${APP}"
+APP_DB_pass="${MYSQL_USER_PASS}"
 EOM
     elif [ "${APP}" = 'opencart' ]; then
         cat >> ${DB_PASS_PATH} <<EOM
 root_mysql_pass="${MYSQL_ROOT_PASS}"
-opencart_mysql_pass="${MYSQL_USER_PASS}"
+APP_DB_NAME="${APP}"
+APP_DB_USER_NAME="${APP}"
+APP_DB_pass="${MYSQL_USER_PASS}"
 EOM
     elif [ "${APP}" = 'prestashop' ]; then
         cat >> ${DB_PASS_PATH} <<EOM
 root_mysql_pass="${MYSQL_ROOT_PASS}"
-prestashop_mysql_pass="${MYSQL_USER_PASS}"
+APP_DB_NAME="${APP}"
+APP_DB_USER_NAME="${APP}"
+APP_DB_pass="${MYSQL_USER_PASS}"
+EOM
+    elif [ "${APP}" = 'mautic' ]; then
+        cat >> ${DB_PASS_PATH} <<EOM
+root_mysql_pass="${MYSQL_ROOT_PASS}"
+APP_DB_NAME="${APP}"
+APP_DB_USER_NAME="${APP}"
+APP_DB_pass="${MYSQL_USER_PASS}"
 EOM
     fi
 }
@@ -464,15 +496,18 @@ test_magento_page(){
     test_page http://localhost:80/  'Magento, Inc' "test Magento HTTP page"
     test_page https://localhost:443/  'Magento, Inc' "test Magento HTTPS page"
 }
-test_opencart_page (){
+test_opencart_page(){
     test_page http://localhost:80/  'OpenCart' "test OpenCart HTTP page"
     #test_page https://localhost:443/  'Opencart' "test Opencart HTTPS page"
 }
-test_prestashop_page (){
+test_prestashop_page(){
     test_page http://localhost:80/  'PrestaShop' "test PrestaShop HTTP page"
     test_page https://localhost:443/  'PrestaShop' "test PrestaShop HTTPS page"
 }
-
+test_mautic_page(){
+    test_page http://localhost:80/  'mautic' "test Mautic HTTP page"
+    test_page https://localhost:443/  'mautic' "test Mautic HTTPS page"
+}
 
 ubuntu_pkg_basic(){
     echoG 'Install basic packages'
@@ -574,8 +609,7 @@ ubuntu_pkg_mariadb(){
         fi
         echoG "Install Mariadb ${MARIAVER}"
         silent apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8
-        #silent add-apt-repository "deb [arch=amd64,arm64,ppc64el] http://mirror.lstn.net/mariadb/repo/${MARIAVER}/ubuntu bionic main"
-        add-apt-repository "deb [arch=amd64,arm64,ppc64el] http://mirror.lstn.net/mariadb/repo/${MARIAVER}/ubuntu focal main"
+        add-apt-repository "deb [arch=amd64,arm64,ppc64el] http://mirror.lstn.net/mariadb/repo/${MARIAVER}/ubuntu focal main" >/dev/null 2>&1
         if [ "$(grep "mariadb.*${MARIAVER}" /etc/apt/sources.list)" = '' ]; then
             echoR '[Failed] to add MariaDB repository'
         fi
@@ -747,11 +781,15 @@ install_lsws(){
         rm -rf ${LSDIR}
     fi
     echoG 'Download LiteSpeed Web Server'
-    wget -q --no-check-certificate https://www.litespeedtech.com/packages/5.0/lsws-5.4.6-ent-x86_64-linux.tar.gz -P ${CMDFD}/
+    wget -q --no-check-certificate https://www.litespeedtech.com/packages/6.0/lsws-${LS_VER}-ent-x86_64-linux.tar.gz -P ${CMDFD}/
     silent tar -zxvf lsws-*-ent-x86_64-linux.tar.gz
     rm -f lsws-*.tar.gz
     cd lsws-*
-    wget -q --no-check-certificate http://license.litespeedtech.com/reseller/trial.key
+    if [ "${LICENSE}" == 'TRIAL' ]; then 
+        wget -q --no-check-certificate http://license.litespeedtech.com/reseller/trial.key
+    else 
+        echo "${LICENSE}" > serial.no
+    fi    
     sed -i '/^license$/d' install.sh
     sed -i 's/read TMPS/TMPS=0/g' install.sh
     sed -i 's/read TMP_YN/TMP_YN=N/g' install.sh
@@ -1070,6 +1108,19 @@ install_prestashop(){
     fi
     mv install install.bk
 }    
+
+install_mautic(){
+    install_composer
+    set_db_user
+    echoG 'Install Mautic...'
+    git clone https://github.com/mautic/mautic.git .
+    if [ ${app_skip} = 0 ]; then
+        echoG 'Run Composer install'
+        composer install
+        echoG 'Composer install finished'
+        echoG 'No CLI for the installation, please visit and finish the Mautic installation from the browser!'
+    fi
+}
 
 fix_opencart_image(){
     if [ "${APP}" = 'opencart' ]; then
@@ -1511,7 +1562,9 @@ show_access(){
     elif [ "${APP}" = 'prestashop' ]; then
         echo "Account: ${EMAIL}"
         echo "Password: ${APP_PASS}"
-        echo "Admin_URL: ${PS_BACK_URL}"         
+        echo "Admin_URL: ${PS_BACK_URL}"  
+    else 
+        echo 'Finigh the rest installation on browser!'           
     fi    
 }
 
@@ -1597,6 +1650,8 @@ ubuntu_main_config(){
     elif [ "${APP}" = 'prestashop' ]; then        
         install_prestashop
         install_ps_cache
+    elif [ "${APP}" = 'mautic' ]; then        
+        install_mautic      
     fi    
     ubuntu_config_memcached
     ubuntu_config_redis
@@ -1639,6 +1694,9 @@ centos_main_config(){
         install_opencart
     elif [ "${APP}" = 'prestashop' ]; then        
         install_prestashop  
+        install_ps_cache
+    elif [ "${APP}" = 'mautic' ]; then        
+        install_mautic          
     fi
     centos_config_memcached
     centos_config_redis
@@ -1656,7 +1714,9 @@ verify_installation(){
     elif [ "${APP}" = 'opencart' ]; then
         test_opencart_page
     elif [ "${APP}" = 'prestashop' ]; then
-        test_prestashop_page                   
+        test_prestashop_page    
+    elif [ "${APP}" = 'mautic' ]; then
+        test_mautic_page                     
     fi
     echoG 'End validate settings'
     echoG 'Cleanup cache.'
@@ -1720,10 +1780,18 @@ while [ ! -z "${1}" ]; do
             ;;
         -[pP] | --prestashop)
             APP='prestashop'
-            ;;                       
+            ;;       
+        --mautic)
+            APP='mautic'
+            ;;                               
         -[sS] | --sample)
             SAMPLE='true'
             ;;
+        -[lL] | --license)
+            shift
+            check_input "${1}"
+            LICENSE="${1}"
+            ;;            
         --pure)
             pure_main
             ;;           

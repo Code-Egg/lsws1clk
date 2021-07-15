@@ -9,13 +9,15 @@ lsws1clk is a one-click installation script for LiteSpeed Web Server. Using this
 you can quickly and easily install:
 | LSWS+PHP+DB|Application|Cache Plugin|
 | :-------------: | :-------------: | :-------------: |
-| V |WordPress | V|
+| V |WordPress | V |
 | V |Magento2 | V |
-|V|OpenCart||
-|V|PrestaShop||
+|V|OpenCart| |
+|V|PrestaShop| V |
+|V|Mautic| |
 
-The script come with trial license by default which has 15 days for free. After that, you may want to apply with your license. 
-License start from $0. [Read More](https://www.litespeedtech.com/products/litespeed-web-server/lsws-pricing)
+The script come with trial license by default which has 15 days for free. After that, you may want to apply with your license. Or you can apply your serial number with `--license xxxxxxxx`. License start from $0. [Read More](https://www.litespeedtech.com/products/litespeed-web-server/lsws-pricing)
+
+Note: For testing purpose, we will give /bin/bash permission to www-data/nobody user for Magento installation (-M) case. 
 
 # How to use
 ---------
@@ -33,6 +35,14 @@ apt install git -y; git clone https://github.com/Code-Egg/lsws1clk.git
 ```
 
 ## Install
+### Pure LSWS 
+``` bash
+lsws1clk/lsws1clk.sh --pure
+```
+### Specified serial number 
+``` bash
+lsws1clk/lsws1clk.sh -L xxxxxxxxxxxxx
+```
 ### WordPress
 ``` bash
 lsws1clk/lsws1clk.sh -W
@@ -52,6 +62,10 @@ lsws1clk/lsws1clk.sh -O
 ### PrestaShop
 ``` bash
 lsws1clk/lsws1clk.sh -P
+```
+### Mautic
+``` bash
+lsws1clk/lsws1clk.sh --mautic
 ```
 
 ## Benchmark
