@@ -403,7 +403,7 @@ prestashop_admin_url="${PS_BACK_URL}"
 prestashop_admin="${EMAIL}"
 prestashop_passd="${APP_PASS}"
 EOM
-    if [ "${APP}" = 'mautic' ]; then
+    elif [ "${APP}" = 'mautic' ]; then
         cat >> ${ADMIN_PASS_PATH} <<EOM
 admin_pass="${ADMIN_PASS}"
 EOM
