@@ -22,6 +22,9 @@ LSCONF="${LSDIR}/conf/httpd_config.xml"
 LSVCONF="${LSDIR}/DEFAULT/conf/vhconf.xml"
 USER=''
 GROUP=''
+LSUSER='lsuser'
+LSPASS='lsuer'
+LSGROUP='lsuser'
 THEME='twentytwenty'
 MARIAVER='10.4'
 DF_PHPVER='74'
@@ -388,6 +391,8 @@ admin_pass="${ADMIN_PASS}"
 Magento_admin_url="${MA_BACK_URL}"
 MagentO_admin="${APP_ACCT}"
 Magento_passd="${APP_PASS}"
+doc_user_name="${LSUSER}"
+doc_user_pass="${LSPASS}"
 EOM
     elif [ "${APP}" = 'opencart' ]; then
         cat >> ${ADMIN_PASS_PATH} <<EOM
@@ -871,14 +876,10 @@ set_mariadb_user(){
     fi
 }
 
-www_user_pass(){
-    if [ "${OSNAME}" = "centos" ]; then
-        LINENUM=$(grep -n -m1 nobody /etc/passwd | awk -F ':' '{print $1}')
-        sed -i "${LINENUM}s|sbin/nologin|/bin/bash|" /etc/passwd   
-    elif [ "${OSNAME}" = 'ubuntu' ] || [ "${OSNAME}" = 'debian' ]; then
-        LINENUM=$(grep -n -m1 www-data /etc/passwd | awk -F ':' '{print $1}')
-        sed -i "${LINENUM}s|/usr/sbin/nologin|/bin/bash|" /etc/passwd    
-    fi   
+user_for_magento(){
+    useradd "${LSUSER}"
+    echo -e "${LSPASS}\n${LSPASS}" | passwd "${LSUSER}"
+    usermod -aG "${LSGROUP}" "${USER}"
 }
 
 install_WP_CLI(){
@@ -1014,7 +1015,7 @@ install_magento(){
         mv magento2-${MA_VER}/.user.ini ${DOCROOT}
         rm -rf ${MA_VER}.tar.gz magento2-${MA_VER}
         echoG 'Finished Composer install'
-        www_user_pass
+        user_for_magento
         set_db_user
         if [ ${app_skip} = 0 ]; then
             echoG 'Run Composer install'
@@ -1062,9 +1063,9 @@ install_ma_sample(){
         find . -type d -exec chmod g+ws {} +
         rm -rf var/cache/* var/page_cache/* var/generation/*
         echoG 'Upgrade'
-        su ${USER} -c 'php bin/magento setup:upgrade'
+        su ${LSUSER} -c 'php bin/magento setup:upgrade'
         echoG 'Deploy static content'
-        su ${USER} -c 'php bin/magento setup:static-content:deploy'
+        su ${LSUSER} -c 'php bin/magento setup:static-content:deploy'
         echoG 'End installing Magento 2 sample data'
     fi
 }
@@ -1226,8 +1227,8 @@ END
 
 clean_magento_cache(){
     cd ${DOCROOT}
-    su ${USER} -c "php bin/magento cache:flush" >/dev/null 2>&1
-    su ${USER} -c "php bin/magento cache:clean" >/dev/null 2>&1
+    su ${LSUSER} -c "php bin/magento cache:flush" >/dev/null 2>&1
+    su ${LSUSER} -c "php bin/magento cache:clean" >/dev/null 2>&1
     change_owner ${DOCROOT}
 }
 
@@ -1235,12 +1236,12 @@ install_litemage(){
     echoG '[Start] Install LiteMage'
     echo -ne '\n' | composer require litespeed/module-litemage
     check_els_service
-    su ${USER} -c "php bin/magento deploy:mode:set developer;"
-    su ${USER} -c "php bin/magento module:enable Litespeed_Litemage;"
-    su ${USER} -c "php bin/magento setup:upgrade;"
-    su ${USER} -c "php bin/magento setup:di:compile;"
+    su ${LSUSER} -c "php bin/magento deploy:mode:set developer;"
+    su ${LSUSER} -c "php bin/magento module:enable Litespeed_Litemage;"
+    su ${LSUSER} -c "php bin/magento setup:upgrade;"
+    su ${LSUSER} -c "php bin/magento setup:di:compile;"
     check_els_service 
-    su ${USER} -c "php bin/magento deploy:mode:set production;"
+    su ${LSUSER} -c "php bin/magento deploy:mode:set production;"
     check_els_service
     echoG '[End] LiteMage install'
     clean_magento_cache
@@ -1285,7 +1286,11 @@ cpu_process(){
 
 change_owner(){
     echoG 'Change Owner'
-    chown -R ${USER}:${GROUP} ${1}
+    if [ "${APP}" = 'magento' ]; then 
+        chown -R ${LSUSER}:${LSGROUP} ${1}
+    else 
+        chown -R ${USER}:${GROUP} ${1}
+    fi     
 }
 
 setup_lsws(){
