@@ -4,7 +4,7 @@
 # WordPress Latest 
 # Magento stable
 # LSCache Latest 
-# PHP 7.4 
+# PHP 8.1
 # MariaDB 10.4
 # Memcached stable
 # Redis stable
@@ -27,10 +27,10 @@ LSPASS='lsuer'
 LSGROUP='lsuser'
 THEME='twentytwenty'
 MARIAVER='10.4'
-DF_PHPVER='74'
-PHPVER='74'
-PHP_M='7'
-PHP_S='4'
+DF_PHPVER='81'
+PHPVER='81'
+PHP_M='8'
+PHP_S='1'
 FIREWALLLIST="22 80 443 7080 9200"
 PHP_MEMORY='999'
 PHP_BIN="${LSDIR}/lsphp${PHPVER}/bin/lsphp"
@@ -39,10 +39,10 @@ WPCFPATH="${DOCROOT}/wp-config.php"
 REPOPATH=''
 WP_CLI='/usr/local/bin/wp'
 MA_COMPOSER='/usr/local/bin/composer'
-LS_VER='6.0.6'
-MA_VER='2.4.2'
-OC_VER='3.0.3.7'
-PS_VER='1.7.7.3'
+LS_VER='6.0.11'
+MA_VER='2.4.4'
+OC_VER='3.0.3.8'
+PS_VER='1.7.8.5'
 COMPOSER_VER='1.10.20'
 EMAIL='test@example.com'
 APP_ACCT=''
@@ -219,10 +219,13 @@ check_os()
         elif [ ${DEBIAN_V} = 10 ] ; then
             OSNAMEVER=DEBIAN10
             OSVER=buster
+        elif [ ${DEBIAN_V} = 11 ] ; then
+            OSNAMEVER=DEBIAN11
+            OSVER=bullseye          
         fi
     fi
     if [ "${OSNAMEVER}" = "" ] ; then
-        echoR "Sorry, currently one click installation only supports Centos(6-8), Debian(7-10) and Ubuntu(14,16,18,20)."
+        echoR "Sorry, currently one click installation only supports Centos(6-8), Debian(7-11) and Ubuntu(14,16,18,20)."
         echoR "You can download the source code and build from it."
         exit 1
     else
