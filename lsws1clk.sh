@@ -22,9 +22,9 @@ LSCONF="${LSDIR}/conf/httpd_config.xml"
 LSVCONF="${LSDIR}/DEFAULT/conf/vhconf.xml"
 USER=''
 GROUP=''
-LSUSER='lsuser'
-LSPASS='lsuer'
-LSGROUP='lsuser'
+LSUSER=''
+LSPASS=''
+LSGROUP=''
 THEME='twentytwenty'
 MARIAVER='10.4'
 DF_PHPVER='81'
@@ -259,6 +259,10 @@ path_update(){
         MEMCACHECONF='/etc/memcached.conf'
         BANNERDST='/etc/update-motd.d/99-one-click'
     fi
+    if [ "${LSUSER}" = "" ]; then
+        LSUSER="${USER}"
+        LSGROUP="${GROUP}"
+    fi    
 }
 
 provider_ck()
@@ -280,10 +284,10 @@ provider_ck()
 
 phpver_ck(){
     if [ "${APP}" = 'prestashop' ]; then
-        echoG 'Current Prestashop support PHP 72 only, update to 72!'
-        PHPVER='72'
+        echoG 'Current Prestashop support PHP 74 only, update to 74!'
+        PHPVER='74'
         PHP_M='7'
-        PHP_S='2'
+        PHP_S='4'
     fi    
 }
 
@@ -352,7 +356,8 @@ gen_password(){
         APP_STR=$(shuf -i 100-999 -n1)
         APP_PASS=$(openssl rand -hex 16)
         APP_ACCT="admin${APP_STR}"
-        MA_BACK_URL="admin_${APP_STR}"        
+        MA_BACK_URL="admin_${APP_STR}"
+        LSPASS=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 16 ; echo '')
     else
         ADMIN_PASS=$(grep admin_pass ${ADMIN_PASS_PATH} | awk -F'"' '{print $2}')
 
@@ -880,9 +885,21 @@ set_mariadb_user(){
 }
 
 user_for_magento(){
-    useradd "${LSUSER}"
-    echo -e "${LSPASS}\n${LSPASS}" | passwd "${LSUSER}"
-    usermod -aG "${LSGROUP}" "${USER}"
+    grep "${LSUSER}" /etc/passwd >/dev/null
+    if [ ${?} = 0 ]; then
+        if [ "${OSNAME}" = "centos" ]; then
+            LINENUM=$(grep -n -m1 nobody /etc/passwd | awk -F ':' '{print $1}')
+            sed -i "${LINENUM}s|sbin/nologin|/bin/bash|" /etc/passwd   
+        elif [ "${OSNAME}" = 'ubuntu' ] || [ "${OSNAME}" = 'debian' ]; then
+            LINENUM=$(grep -n -m1 www-data /etc/passwd | awk -F ':' '{print $1}')
+            sed -i "${LINENUM}s|/usr/sbin/nologin|/bin/bash|" /etc/passwd    
+        fi
+    else
+        useradd "${LSUSER}"
+        echo -e "${LSPASS}\n${LSPASS}" | passwd "${LSUSER}"
+        usermod -aG "${LSGROUP}" "${USER}"
+        usermod -aG "${GROUP}" "${USER}"
+    fi    
 }
 
 install_WP_CLI(){
@@ -915,9 +932,25 @@ install_composer(){
     fi    
 }
 
+ck_svr_elk_ram(){
+    echoG 'Check if memory size is enough.'
+    PHYMEM=$(LANG=C free|awk '/^Mem:/{print $2}')
+    if [ ${PHYMEM} -lt 3800000 ]; then 
+        echoR "With Elasticsearch service, memory size ${PHYMEM} is too small"
+        printf "%s"  "Do you still want to continue. [y/N] "
+        read TMP_YN
+        if [[ "${TMP_YN}" =~ ^(y|Y) ]]; then
+            echo ''
+        else
+            exit 1    
+        fi
+    fi
+}
+
 ubuntu_pkg_elasticsearch(){
     if [ "${APP}" = 'magento' ]; then
         echoG 'Install elasticsearch'
+        ck_svr_elk_ram
         if [ ! -e /etc/elasticsearch ]; then    
             curl -fsSL https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add - >/dev/null 2>&1
             echo "deb https://artifacts.elastic.co/packages/7.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-7.x.list >/dev/null 2>&1
@@ -939,6 +972,7 @@ ubuntu_pkg_elasticsearch(){
 
 centos_pkg_elasticsearch(){
     if [ "${APP}" = 'magento' ]; then
+        ck_svr_elk_ram
         echoG 'Install elasticsearch' 
         if [ ! -e /etc/elasticsearch ]; then 
             rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch >/dev/null 2>&1
