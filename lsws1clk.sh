@@ -5,7 +5,7 @@
 # Magento stable
 # LSCache Latest 
 # PHP 8.1
-# MariaDB 10.4
+# MariaDB 10.9
 # Memcached stable
 # Redis stable
 # PHPMyAdmin Latest
@@ -26,23 +26,23 @@ LSUSER=''
 LSPASS=''
 LSGROUP=''
 THEME='twentytwenty'
-MARIAVER='10.4'
+MARIAVER='10.9'
 DF_PHPVER='81'
 PHPVER='81'
 PHP_M='8'
 PHP_S='1'
 FIREWALLLIST="22 80 443 7080 9200"
 PHP_MEMORY='999'
-PHP_BIN="${LSDIR}/lsphp${PHPVER}/bin/lsphp"
+PHP_BIN="${LSDIR}/lsphp${PHPVER}/bin/php"
 PHPINICONF=""
 WPCFPATH="${DOCROOT}/wp-config.php"
 REPOPATH=''
 WP_CLI='/usr/local/bin/wp'
 MA_COMPOSER='/usr/local/bin/composer'
-LS_VER='6.0.11'
-MA_VER='2.4.4'
-OC_VER='3.0.3.8'
-PS_VER='1.7.8.5'
+LS_VER='6.0.12'
+MA_VER='2.4.5'
+OC_VER='4.0.1.1'
+PS_VER='1.7.8.7'
 COMPOSER_VER='1.10.20'
 EMAIL='test@example.com'
 APP_ACCT=''
@@ -69,6 +69,7 @@ OSNAME=''
 OSVER=''
 APP='wordpress'
 EPACE='        '
+FPACE='    '
 
 silent() {
   if [[ $debug ]] ; then
@@ -594,9 +595,6 @@ ubuntu_pkg_ufw(){
 
 ubuntu_pkg_certbot(){
     echoG "Install CertBot"
-    add-apt-repository universe > /dev/null 2>&1
-    echo -ne '\n' | add-apt-repository ppa:certbot/certbot > /dev/null 2>&1
-    apt-get update > /dev/null 2>&1
     apt-get -y install certbot > /dev/null 2>&1
     if [ -e /usr/bin/certbot ] || [ -e /usr/local/bin/certbot ]; then
         echoG 'Install CertBot finished'
@@ -616,32 +614,41 @@ ubuntu_pkg_system(){
 }
 
 ubuntu_pkg_mariadb(){
-    apt list --installed 2>/dev/null | grep mariadb-server-${MARIAVER} >/dev/null 2>&1
-    if [ ${?} = 0 ]; then
-        echoG "Mariadb ${MARIAVER} already installed"
-    else
-        if [ -e /etc/mysql/mariadb.cnf ]; then
-            echoY 'Remove old mariadb'
-            rm_old_pkg mariadb-server
-        fi
-        echoG "Install Mariadb ${MARIAVER}"
-        silent apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8
-        add-apt-repository "deb [arch=amd64,arm64,ppc64el] http://mirror.lstn.net/mariadb/repo/${MARIAVER}/ubuntu focal main" >/dev/null 2>&1
-        if [ "$(grep "mariadb.*${MARIAVER}" /etc/apt/sources.list)" = '' ]; then
-            echoR '[Failed] to add MariaDB repository'
-        fi
-        silent apt update
-        DEBIAN_FRONTEND=noninteractive apt -y -o Dpkg::Options::='--force-confdef' \
-            -o Dpkg::Options::='--force-confold' install mariadb-server >/dev/null 2>&1            
+
+    if [ "$OSNAMEVER" = "DEBIAN8" ]; then
+        silent ${APT} -y -f install software-properties-common
+    elif [ "$OSNAME" = "debian" ]; then
+        silent ${APT} -y -f install software-properties-common gnupg
+    elif [ "$OSNAME" = "ubuntu" ]; then
+        silent ${APT} -y -f install software-properties-common
     fi
-    systemctl start mariadb
-    local DBSTATUS=$(systemctl is-active mariadb)
-    if [ ${DBSTATUS} = active ]; then
-        echoG "MARIADB is: ${DBSTATUS}"
-    else
-        echoR "[Failed] Mariadb is: ${DBSTATUS}"
-        #exit 1
+    MARIADB_KEY='/usr/share/keyrings/mariadb.gpg'
+    wget -q -O- https://mariadb.org/mariadb_release_signing_key.asc | gpg --dearmor > "${MARIADB_KEY}"
+    if [ ! -e "${MARIADB_KEY}" ]; then 
+        echoR "${MARIADB_KEY} does not exist, please check the key, exit!"
+        exit 1
+    fi    
+
+    echoG "${FPACE} - Add MariaDB repo"
+    if [ -e /etc/apt/sources.list.d/mariadb.list ]; then  
+        grep -Fq  "mirror.mariadb.org" /etc/apt/sources.list.d/mariadb.list >/dev/null 2>&1
+        if [ $? != 0 ] ; then
+            echo "deb [$MARIADBCPUARCH signed-by=${MARIADB_KEY}] http://mirror.mariadb.org/repo/$MARIADBVER/$OSNAME $OSVER main"  > /etc/apt/sources.list.d/mariadb.list
+        fi
+    else 
+        echo "deb [$MARIADBCPUARCH signed-by=${MARIADB_KEY}] http://mirror.mariadb.org/repo/$MARIADBVER/$OSNAME $OSVER main"  > /etc/apt/sources.list.d/mariadb.list
     fi
+    echoG "${FPACE} - Update packages"
+    apt-get update > /dev/null 2>&1
+    echoG "${FPACE} - Install MariaDB"
+    silent apt-get -y -f install mariadb-server
+    if [ $? != 0 ] ; then
+        echoR "An error occured during installation of MariaDB. Please fix this error and try again."
+        echoR "You may want to manually run the command 'apt-get -y -f --allow-unauthenticated install mariadb-server' to check. Aborting installation!"
+        exit 1
+    fi
+    echoG "${FPACE} - Start MariaDB"
+    service mysql start    
 }
 
 centos_pkg_basic(){
