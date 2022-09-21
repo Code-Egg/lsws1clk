@@ -615,40 +615,46 @@ ubuntu_pkg_system(){
 
 ubuntu_pkg_mariadb(){
 
-    if [ "$OSNAMEVER" = "DEBIAN8" ]; then
-        silent ${APT} -y -f install software-properties-common
-    elif [ "$OSNAME" = "debian" ]; then
-        silent ${APT} -y -f install software-properties-common gnupg
-    elif [ "$OSNAME" = "ubuntu" ]; then
-        silent ${APT} -y -f install software-properties-common
-    fi
-    MARIADB_KEY='/usr/share/keyrings/mariadb.gpg'
-    wget -q -O- https://mariadb.org/mariadb_release_signing_key.asc | gpg --dearmor > "${MARIADB_KEY}"
-    if [ ! -e "${MARIADB_KEY}" ]; then 
-        echoR "${MARIADB_KEY} does not exist, please check the key, exit!"
-        exit 1
-    fi    
+    apt list --installed 2>/dev/null | grep mariadb-server-${MARIAVER} >/dev/null 2>&1
+    if [ ${?} = 0 ]; then
+        echoG "Mariadb ${MARIAVER} already installed"
+    else
+        
+        if [ "$OSNAMEVER" = "DEBIAN8" ]; then
+            silent ${APT} -y -f install software-properties-common
+        elif [ "$OSNAME" = "debian" ]; then
+            silent ${APT} -y -f install software-properties-common gnupg
+        elif [ "$OSNAME" = "ubuntu" ]; then
+            silent ${APT} -y -f install software-properties-common
+        fi
+        MARIADB_KEY='/usr/share/keyrings/mariadb.gpg'
+        wget -q -O- https://mariadb.org/mariadb_release_signing_key.asc | gpg --dearmor > "${MARIADB_KEY}"
+        if [ ! -e "${MARIADB_KEY}" ]; then 
+            echoR "${MARIADB_KEY} does not exist, please check the key, exit!"
+            exit 1
+        fi    
 
-    echoG "${FPACE} - Add MariaDB repo"
-    if [ -e /etc/apt/sources.list.d/mariadb.list ]; then  
-        grep -Fq  "mirror.mariadb.org" /etc/apt/sources.list.d/mariadb.list >/dev/null 2>&1
-        if [ $? != 0 ] ; then
+        echoG "${FPACE} - Add MariaDB repo"
+        if [ -e /etc/apt/sources.list.d/mariadb.list ]; then  
+            grep -Fq  "mirror.mariadb.org" /etc/apt/sources.list.d/mariadb.list >/dev/null 2>&1
+            if [ $? != 0 ] ; then
+                echo "deb [$MARIADBCPUARCH signed-by=${MARIADB_KEY}] http://mirror.mariadb.org/repo/$MARIADBVER/$OSNAME $OSVER main"  > /etc/apt/sources.list.d/mariadb.list
+            fi
+        else 
             echo "deb [$MARIADBCPUARCH signed-by=${MARIADB_KEY}] http://mirror.mariadb.org/repo/$MARIADBVER/$OSNAME $OSVER main"  > /etc/apt/sources.list.d/mariadb.list
         fi
-    else 
-        echo "deb [$MARIADBCPUARCH signed-by=${MARIADB_KEY}] http://mirror.mariadb.org/repo/$MARIADBVER/$OSNAME $OSVER main"  > /etc/apt/sources.list.d/mariadb.list
-    fi
-    echoG "${FPACE} - Update packages"
-    apt-get update > /dev/null 2>&1
-    echoG "${FPACE} - Install MariaDB"
-    apt-get -y -f install mariadb-server
-    if [ $? != 0 ] ; then
-        echoR "An error occured during installation of MariaDB. Please fix this error and try again."
-        echoR "You may want to manually run the command 'apt-get -y -f --allow-unauthenticated install mariadb-server' to check. Aborting installation!"
-        exit 1
-    fi
-    echoG "${FPACE} - Start MariaDB"
-    service mysql start    
+        echoG "${FPACE} - Update packages"
+        apt-get update > /dev/null 2>&1
+        echoG "${FPACE} - Install MariaDB"
+        silent apt-get -y -f install mariadb-server
+        if [ $? != 0 ] ; then
+            echoR "An error occured during installation of MariaDB. Please fix this error and try again."
+            echoR "You may want to manually run the command 'apt-get -y -f --allow-unauthenticated install mariadb-server' to check. Aborting installation!"
+            exit 1
+        fi
+        echoG "${FPACE} - Start MariaDB"
+        service mysql start    
+    fi    
 }
 
 centos_pkg_basic(){
