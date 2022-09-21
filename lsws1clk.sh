@@ -199,7 +199,6 @@ check_os()
             OSNAMEVER=UBUNTU20
             OSVER=focal
             MARIADBCPUARCH="arch=amd64"
-        fi
         elif [ ${UBUNTU_V} = 22 ] ; then
             OSNAMEVER=UBUNTU22
             OSVER=jammy
