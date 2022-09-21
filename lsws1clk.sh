@@ -614,14 +614,7 @@ ubuntu_pkg_system(){
 }
 
 ubuntu_pkg_mariadb(){
-
     apt list --installed 2>/dev/null | grep mariadb-server >/dev/null 2>&1
-    apt-get remove --purge mysql*
-    apt purge *mysql*
-    apt purge *mariadb*
-    dpkg --list | grep mysql
-    dpkg --list | grep mariadb
-    
     if [ ${?} = 0 ]; then
         echoG "Mariadb ${MARIAVER} already installed"
     else
@@ -644,16 +637,15 @@ ubuntu_pkg_mariadb(){
         if [ -e /etc/apt/sources.list.d/mariadb.list ]; then  
             grep -Fq  "mirror.mariadb.org" /etc/apt/sources.list.d/mariadb.list >/dev/null 2>&1
             if [ $? != 0 ] ; then
-                echo "deb [$MARIADBCPUARCH signed-by=${MARIADB_KEY}] http://mirror.mariadb.org/repo/$MARIADBVER/$OSNAME $OSVER main"  > /etc/apt/sources.list.d/mariadb.list
+                echo "deb [$MARIADBCPUARCH signed-by=${MARIADB_KEY}] http://mirror.mariadb.org/repo/$MARIAVER/$OSNAME $OSVER main"  > /etc/apt/sources.list.d/mariadb.list
             fi
         else 
-            echo "deb [$MARIADBCPUARCH signed-by=${MARIADB_KEY}] http://mirror.mariadb.org/repo/$MARIADBVER/$OSNAME $OSVER main"  > /etc/apt/sources.list.d/mariadb.list
+            echo "deb [$MARIADBCPUARCH signed-by=${MARIADB_KEY}] http://mirror.mariadb.org/repo/$MARIAVER/$OSNAME $OSVER main"  > /etc/apt/sources.list.d/mariadb.list
         fi
         echoG "${FPACE} - Update packages"
         apt-get update > /dev/null 2>&1
         echoG "${FPACE} - Install MariaDB"
-        apt-get -y -f install mariadb-server
-        #silent apt-get -y -f install mariadb-server
+        silent apt-get -y -f install mariadb-server
         if [ $? != 0 ] ; then
             echoR "An error occured during installation of MariaDB. Please fix this error and try again."
             echoR "You may want to manually run the command 'apt-get -y -f --allow-unauthenticated install mariadb-server' to check. Aborting installation!"
@@ -1630,7 +1622,7 @@ show_access(){
         echo "Password: ${APP_PASS}"
         echo "Admin_URL: ${PS_BACK_URL}"  
     else 
-        echo 'Finigh the rest installation on browser!'           
+        echo 'Finish the rest installation on browser!'           
     fi    
 }
 
