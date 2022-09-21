@@ -616,6 +616,12 @@ ubuntu_pkg_system(){
 ubuntu_pkg_mariadb(){
 
     apt list --installed 2>/dev/null | grep mariadb-server >/dev/null 2>&1
+    apt-get remove --purge mysql*
+    apt purge *mysql*
+    apt purge *mariadb*
+    dpkg --list | grep mysql
+    dpkg --list | grep mariadb
+    
     if [ ${?} = 0 ]; then
         echoG "Mariadb ${MARIAVER} already installed"
     else
