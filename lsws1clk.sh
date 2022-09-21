@@ -615,7 +615,7 @@ ubuntu_pkg_system(){
 
 ubuntu_pkg_mariadb(){
 
-    apt list --installed 2>/dev/null | grep mariadb-server-${MARIAVER} >/dev/null 2>&1
+    apt list --installed 2>/dev/null | grep mariadb-server >/dev/null 2>&1
     if [ ${?} = 0 ]; then
         echoG "Mariadb ${MARIAVER} already installed"
     else
