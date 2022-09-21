@@ -641,7 +641,7 @@ ubuntu_pkg_mariadb(){
     echoG "${FPACE} - Update packages"
     apt-get update > /dev/null 2>&1
     echoG "${FPACE} - Install MariaDB"
-    silent apt-get -y -f install mariadb-server
+    apt-get -y -f install mariadb-server
     if [ $? != 0 ] ; then
         echoR "An error occured during installation of MariaDB. Please fix this error and try again."
         echoR "You may want to manually run the command 'apt-get -y -f --allow-unauthenticated install mariadb-server' to check. Aborting installation!"
