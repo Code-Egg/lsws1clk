@@ -200,6 +200,11 @@ check_os()
             OSVER=focal
             MARIADBCPUARCH="arch=amd64"
         fi
+        elif [ ${UBUNTU_V} = 22 ] ; then
+            OSNAMEVER=UBUNTU22
+            OSVER=jammy
+            MARIADBCPUARCH="arch=amd64"
+        fi        
     elif [ -f /etc/debian_version ] ; then
         OSNAME=debian
         wget -O - http://rpms.litespeedtech.com/debian/enable_lst_debain_repo.sh | bash
@@ -225,7 +230,7 @@ check_os()
         fi
     fi
     if [ "${OSNAMEVER}" = "" ] ; then
-        echoR "Sorry, currently one click installation only supports Centos(6-8), Debian(7-11) and Ubuntu(14,16,18,20)."
+        echoR "Sorry, currently one click installation only supports Centos(6-8), Debian(7-11) and Ubuntu(14,16,18,20,22)."
         echoR "You can download the source code and build from it."
         exit 1
     else
