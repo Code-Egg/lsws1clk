@@ -5,7 +5,6 @@
 # Magento stable
 # LSCache Latest 
 # PHP 8.1
-# MariaDB 10.9
 # Memcached stable
 # Redis stable
 # PHPMyAdmin Latest
@@ -26,7 +25,7 @@ LSUSER=''
 LSPASS=''
 LSGROUP=''
 THEME='twentytwenty'
-MARIAVER='10.9'
+MARIAVER='10.3'
 DF_PHPVER='81'
 PHPVER='81'
 PHP_M='8'
