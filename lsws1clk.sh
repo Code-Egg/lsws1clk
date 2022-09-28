@@ -25,13 +25,13 @@ LSUSER=''
 LSPASS=''
 LSGROUP=''
 THEME='twentytwenty'
-MARIAVER='10.3'
+MARIAVER='10.4'
 DF_PHPVER='81'
 PHPVER='81'
 PHP_M='8'
 PHP_S='1'
 FIREWALLLIST="22 80 443 7080 9200"
-PHP_MEMORY='999'
+PHP_MEMORY='1999'
 PHP_BIN="${LSDIR}/lsphp${PHPVER}/bin/php"
 PHPINICONF=""
 WPCFPATH="${DOCROOT}/wp-config.php"
@@ -42,7 +42,8 @@ LS_VER='6.0.12'
 MA_VER='2.4.5'
 OC_VER='4.0.1.1'
 PS_VER='1.7.8.7'
-COMPOSER_VER='1.10.20'
+#COMPOSER_VER='1.10.20'
+COMPOSER_VER='2.4.2'
 EMAIL='test@example.com'
 APP_ACCT=''
 APP_PASS=''
@@ -893,6 +894,11 @@ set_mariadb_user(){
     mysql -u root -p${MYSQL_ROOT_PASS} -e "CREATE DATABASE IF NOT EXISTS ${WP_NAME};"
     if [ ${?} = 0 ]; then
         mysql -u root -p${MYSQL_ROOT_PASS} -e "grant all privileges on ${WP_NAME}.* to '${WP_USER}'@'localhost' identified by '${WP_PASS}';"
+        mysql -u ${WP_USER} -p${WP_PASS} -e 'status' | grep 'Server version'
+        if [ ${?} != 0 ]; then
+            echoR "Failed to create DB user, please check. Skip script!"
+            exit 1
+        fi
     else
         echoR "Failed to create database ${WP_NAME}. It may already exist. Skip WordPress setup!"
         SKIP_WP=1
@@ -939,6 +945,7 @@ install_composer(){
         wget -qO composer-setup.php https://getcomposer.org/installer
         php composer-setup.php --version ${COMPOSER_VER}
         mv composer.phar ${MA_COMPOSER}
+        export COMPOSER_ALLOW_SUPERUSER=1
         silent composer --version
         if [ ${?} != 0 ]; then
             echoR 'Issue with composer, Please check!'
@@ -1063,7 +1070,7 @@ install_magento(){
         mv magento2-${MA_VER}/* ${DOCROOT}
         mv magento2-${MA_VER}/.editorconfig ${DOCROOT}
         mv magento2-${MA_VER}/.htaccess ${DOCROOT}
-        mv magento2-${MA_VER}/.php_cs.dist ${DOCROOT}
+        mv magento2-${MA_VER}/.php-cs-fixer.dist.php ${DOCROOT}
         mv magento2-${MA_VER}/.user.ini ${DOCROOT}
         rm -rf ${MA_VER}.tar.gz magento2-${MA_VER}
         echoG 'Finished Composer install'
@@ -1300,7 +1307,10 @@ install_litemage(){
 }
 
 config_litemage(){
-    bin/magento config:set --scope=default --scope-code=0 system/full_page_cache/caching_application LITEMAGE
+    echoG 'Set full_page_cache to Litemage'
+    bin/magento config:set --scope=default --scope-code=0 system/full_page_cache/caching_application 168
+    echoG 'Flush cache'
+    bin/magento cache:flush >/dev/null 2>&1
 }
 
 install_ps_cache(){
@@ -1672,9 +1682,11 @@ init_setup(){
 
 ubuntu_pkg_main(){
     ubuntu_pkg_basic
-    ubuntu_pkg_postfix
-    ubuntu_pkg_memcached
-    ubuntu_pkg_redis
+    if [ "${APP}" = 'wordpress' ]; then 
+        ubuntu_pkg_postfix
+        ubuntu_pkg_memcached
+        ubuntu_pkg_redis
+    fi    
     ubuntu_pkg_ufw
     ubuntu_pkg_phpmyadmin
     ubuntu_pkg_certbot
@@ -1698,6 +1710,8 @@ ubuntu_main_config(){
     if [ "${APP}" = 'wordpress' ]; then
         install_wordpress
         config_wp_main
+        ubuntu_config_memcached
+        ubuntu_config_redis        
     elif [ "${APP}" = 'magento' ]; then
         install_magento
         config_ma_main
@@ -1710,17 +1724,17 @@ ubuntu_main_config(){
     elif [ "${APP}" = 'mautic' ]; then        
         install_mautic      
     fi    
-    ubuntu_config_memcached
-    ubuntu_config_redis
     restart_lsws
     change_owner ${DOCROOT}
 }
 
 centos_pkg_main(){
     centos_pkg_basic
-    centos_pkg_postfix
-    centos_pkg_memcached
-    centos_pkg_redis
+    if [ "${APP}" = 'wordpress' ]; then     
+        centos_pkg_postfix
+        centos_pkg_memcached
+        centos_pkg_redis
+    fi
     centos_pkg_phpmyadmin
     centos_pkg_certbot
     centos_pkg_system
@@ -1743,6 +1757,8 @@ centos_main_config(){
     if [ "${APP}" = 'wordpress' ]; then
         install_wordpress
         config_wp_main
+        centos_config_memcached
+        centos_config_redis
     elif [ "${APP}" = 'magento' ]; then
         install_magento
         config_ma_main
@@ -1755,8 +1771,6 @@ centos_main_config(){
     elif [ "${APP}" = 'mautic' ]; then        
         install_mautic          
     fi
-    centos_config_memcached
-    centos_config_redis
     restart_lsws
     change_owner ${DOCROOT}
 }
