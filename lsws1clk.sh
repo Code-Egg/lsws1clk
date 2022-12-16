@@ -41,8 +41,8 @@ MA_COMPOSER='/usr/local/bin/composer'
 LS_VER='6.0.12'
 MA_VER='2.4.5'
 OC_VER='4.0.1.1'
-PS_VER='1.7.8.7'
-#COMPOSER_VER='1.10.20'
+PS_BETA_VER='8.0.0'
+PS_VER='1.7.8.8'
 COMPOSER_VER='2.4.2'
 EMAIL='test@example.com'
 APP_ACCT=''
@@ -289,10 +289,12 @@ provider_ck()
 
 phpver_ck(){
     if [ "${APP}" = 'prestashop' ]; then
-        echoG 'Current Prestashop support PHP 74 only, update to 74!'
-        PHPVER='74'
-        PHP_M='7'
-        PHP_S='4'
+        if [ "${BETA}" = '' ]; then
+            echoG 'Current Prestashop support PHP 74 only, update to 74!'
+            PHPVER='74'
+            PHP_M='7'
+            PHP_S='4'
+        fi    
     fi    
 }
 
@@ -1169,6 +1171,28 @@ install_prestashop(){
     mv install install.bk
 }    
 
+install_beta_prestashop(){
+    set_db_user
+    if [ ${app_skip} = 0 ]; then
+        echoG 'Install Prestashop...'
+        get_ip
+        wget -q https://github.com/PrestaShop/PrestaShop/releases/download/${PS_BETA_VER}/prestashop_${PS_BETA_VER}.zip
+        unzip -q prestashop_${PS_BETA_VER}.zip; mv index.php /tmp/
+        unzip -q prestashop.zip
+        php install/index_cli.php \
+            --domain="${MYIP}" \
+            --db_server=127.0.0.1 \
+            --db_name=${WP_NAME} \
+            --db_user=${WP_USER} \
+            --db_password=${WP_PASS} \
+            --email=${EMAIL} \
+            --password=${APP_PASS};
+    fi
+    mv install install.bk
+}  
+
+
+
 install_mautic(){
     install_composer
     set_db_user
@@ -1729,9 +1753,14 @@ ubuntu_main_config(){
         install_ma_sample
     elif [ "${APP}" = 'opencart' ]; then        
         install_opencart
-    elif [ "${APP}" = 'prestashop' ]; then        
-        install_prestashop
-        install_ps_cache
+    elif [ "${APP}" = 'prestashop' ]; then
+        if [ "${BETA}" = 'yes' ]; then
+            install_beta_prestashop
+            install_ps_cache
+        else
+            install_prestashop
+            install_ps_cache
+        fi    
     elif [ "${APP}" = 'mautic' ]; then        
         install_mautic      
     fi    
@@ -1862,7 +1891,12 @@ while [ ! -z "${1}" ]; do
             ;;
         -[pP] | --prestashop)
             APP='prestashop'
-            ;;       
+            BETA=''
+            ;;
+        -[PB] | --prestashop-beta)
+            APP='prestashop'
+            BETA='yes'
+            ;;        
         --mautic)
             APP='mautic'
             ;;                               
