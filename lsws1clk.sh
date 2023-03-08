@@ -64,6 +64,7 @@ SKIP_MEMCA=0
 app_skip=0
 SAMPLE='false'
 LICENSE='TRIAL'
+UNINSTALL_ALL=''
 OSNAMEVER=''
 OSNAME=''
 OSVER=''
@@ -130,17 +131,41 @@ help_message(){
         echo "${EPACE}${EPACE}Example: lsws1clk.sh -O"
         echow '-P, --prestashop'
         echo "${EPACE}${EPACE}Example: lsws1clk.sh -P"
+        echow '--prestashop-beta'
+        echo "${EPACE}${EPACE}Example: lsws1clk.sh --prestashop-beta"
         echow '--mautic'
         echo "${EPACE}${EPACE}Example: lsws1clk.sh --mautic"        
         echow '-L, --license'
         echo "${EPACE}${EPACE}Example: lsws1clk.sh -L, to use specified LSWS serial number."        
         echow '--pure'
         echo "${EPACE}${EPACE}Example: lsws1clk.sh --pure. It will install pure LSWS + PHP only."
+        echow '--uninstall'
+        echo "${EPACE}${EPACE}Example: lsws1clk.sh --uninstall. It will uninstall pure LSWS + PHP only."      
+        echow '--uninstall-all'
+        echo "${EPACE}${EPACE}Example: lsws1clk.sh --uninstall-all. It will uninstall LSWS + PHP + all packages and document."          
         echow '-H, --help'
         echo "${EPACE}${EPACE}Display help and exit." 
         exit 0
     ;;    
     esac
+}
+
+uninstall_msg(){
+    if [ ${UNINSTALL_ALL} = 'True' ]; then
+        printf '\033[31mUninstall LSWS, PHP, MariaDB, Postfix, Certbot and Document Folder, do you still want to continue?[y/N]\033[0m '
+    else
+        printf '\033[31mUninstall LSWS and PHP, do you still want to continue?[y/N]\033[0m '
+    fi    
+    read answer
+    echo
+
+    if [ "$answer" != "Y" ] && [ "$answer" != "y" ] ; then
+        echoG "OK, exit script!"
+        exit 0
+    else
+        echoG "Ok, will start uninstall process .."
+        sleep 5
+    fi
 }
 
 get_ip(){
@@ -875,12 +900,30 @@ centos_reinstall(){
     fi
 }
 
+uninstall_lsws(){
+    echoG 'Uninstall LiteSpeed Web Server'
+    if [ -d ${LSDIR} ]; then
+        silent systemctl stop lsws
+        rm -rf ${LSDIR}
+    fi    
+
+}
+
+ubuntu_uninstall_lsws(){
+    uninstall_lsws
+}
+
+centos_uninstall_lsws(){
+    uninstall_lsws
+}
+
 ubuntu_install_php(){
     echoG 'Install PHP & Packages for LSWS'
     ubuntu_reinstall "lsphp${PHPVER}"
     for PKG in '' -common -curl -gd -json -mysql -imagick -imap -memcached -msgpack -redis -mcrypt -opcache -intl; do
         /usr/bin/apt ${OPTIONAL} install -y lsphp${PHPVER}${PKG} >/dev/null 2>&1
     done
+    rm -f /usr/bin/php
 }
 
 centos_install_php(){
@@ -888,7 +931,44 @@ centos_install_php(){
     for PKG in '' -common -gd -pdo -imap -mbstring -imagick -mysqlnd -bcmath -soap -memcached -mcrypt -process -opcache -redis -json -xml -xmlrpc -intl; do
         /usr/bin/yum install lsphp${PHPVER}${PKG} -y >/dev/null 2>&1
     done
+    rm -f /usr/bin/php
+}
 
+ubuntu_uninstall_php(){
+    echoG 'Uninstall LSPHP'
+    apt-get purge --auto-remove lsphp* -y >/dev/null 2>&1
+}
+
+centos_uninstall_php(){
+    echoG 'Uninstall LSPHP'
+    yum remove lsphp* -y >/dev/null 2>&1
+}
+
+
+ubuntu_uninstall_pkg(){
+    echoG 'Uninstall packages'
+    apt-get purge --auto-remove mariadb-server certbot postfix -y >/dev/null 2>&1
+    rm -rf /var/lib/mysql/ /etc/mysql/
+}
+
+centos_uninstall_pkg(){
+    echoG 'Uninstall packages'
+    yum remove MariaDB-server MariaDB-client certbot postfix -y >/dev/null 2>&1
+    rm -rf /var/lib/mysql/ /etc/mysql/
+}
+
+ubuntu_uninstall_doc(){
+    echoG 'Uninstall document'
+    rm -rf ${WWWFD}
+    rm -f ${HMPATH}/.db_password
+    rm -f ${HMPATH}/.litespeed_password
+}
+
+centos_uninstall_doc(){
+    echoG 'Uninstall document'
+    rm -rf ${WWWFD}
+    rm -f ${HMPATH}/.db_password
+    rm -f ${HMPATH}/.litespeed_password    
 }
 
 set_mariadb_user(){
@@ -1768,6 +1848,16 @@ ubuntu_main_config(){
     change_owner ${DOCROOT}
 }
 
+ubuntu_main_uninstall(){
+    ubuntu_uninstall_lsws
+    ubuntu_uninstall_php
+    if [ ${UNINSTALL_ALL} = 'True' ]; then
+        ubuntu_uninstall_pkg
+        ubuntu_uninstall_doc
+    fi
+    exit 0
+}
+
 centos_pkg_main(){
     centos_pkg_basic
     if [ "${APP}" = 'wordpress' ]; then     
@@ -1813,6 +1903,16 @@ centos_main_config(){
     fi
     restart_lsws
     change_owner ${DOCROOT}
+}
+
+centos_main_uninstall(){
+    centos_uninstall_lsws
+    centos_uninstall_php
+    if [ ${UNINSTALL_ALL} = 'True' ]; then
+        centos_uninstall_pkg
+        centos_uninstall_doc
+    fi
+    exit 0
 }
 
 verify_installation(){
@@ -1875,6 +1975,18 @@ main(){
     end_message
 }
 
+main_uninstall(){
+    init_check
+    start_message
+    uninstall_msg
+    if [ ${OSNAME} = 'centos' ]; then
+        centos_main_uninstall
+    else
+        ubuntu_main_uninstall
+    fi
+    end_message
+}
+
 while [ ! -z "${1}" ]; do
     case ${1} in
         -[hH] | -help | --help)
@@ -1893,7 +2005,7 @@ while [ ! -z "${1}" ]; do
             APP='prestashop'
             BETA=''
             ;;
-        -[PB] | --prestashop-beta)
+        --prestashop-beta)
             APP='prestashop'
             BETA='yes'
             ;;        
@@ -1910,7 +2022,16 @@ while [ ! -z "${1}" ]; do
             ;;            
         --pure)
             pure_main
-            ;;           
+            ;;
+        --uninstall)
+            ACTION=UNINSTALL
+            main_uninstall
+            ;;
+        --uninstall-all)
+            ACTION=UNINSTALL
+            UNINSTALL_ALL='True'
+            main_uninstall
+            ;;
         *) 
             help_message 2
             ;;              

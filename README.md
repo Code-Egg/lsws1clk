@@ -66,6 +66,16 @@ lsws1clk/lsws1clk.sh -P
 lsws1clk/lsws1clk.sh --mautic
 ```
 
+## Uninstall
+### Uninstall LSWS and LSPHP
+``` bash
+lsws1clk/lsws1clk.sh --uninstall
+```
+### Uninstall LSWS, LSPHP, all packages and document
+``` bash
+lsws1clk/lsws1clk.sh --uninstall-all
+```
+
 ## Benchmark
 * Test client: 
 online tool - [load.io](https://loader.io/) with 5000 clients 
