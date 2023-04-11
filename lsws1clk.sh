@@ -199,7 +199,7 @@ check_os()
     OSTYPE=$(uname -m)
     MARIADBCPUARCH=
     if [ -f /etc/redhat-release ] ; then
-        OSVER=$(cat /etc/redhat-release | awk '{print substr($4,1,1)}')
+        OSVER=$(cat /etc/redhat-release | tr -dc '0-9.'|cut -d \. -f1)
         if [ ${?} = 0 ] ; then
             OSNAMEVER=CENTOS${OSVER}
             OSNAME=centos
