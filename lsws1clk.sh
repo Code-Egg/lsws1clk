@@ -780,7 +780,7 @@ centos_pkg_mariadb(){
             cat > ${REPOPATH}/MariaDB.repo <<END
 [mariadb]
 name = MariaDB
-baseurl = https://downloads.mariadb.com/MariaDB/mariadb-$MARIADBVER/yum/rhel/\$releasever/\$basearch
+baseurl = https://downloads.mariadb.com/MariaDB/mariadb-$MARIAVER/yum/rhel/\$releasever/\$basearch
 gpgkey = file:///etc/pki/rpm-gpg/MariaDB-Server-GPG-KEY
 gpgcheck=1
 enabled = 1
@@ -790,7 +790,7 @@ END
             cat > ${REPOPATH}/MariaDB.repo <<END
 [mariadb]
 name = MariaDB
-baseurl = http://yum.mariadb.org/$MARIADBVER/$CENTOSVER
+baseurl = http://yum.mariadb.org/$MARIAVER/$CENTOSVER
 gpgkey=https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
 gpgcheck=1
 END
