@@ -770,42 +770,51 @@ centos_pkg_mariadb(){
     if [ ${?} = 0 ]; then
         echoG "Mariadb ${MARIAVER} already installed"
     else
-        if [ -e /etc/mysql/mariadb.cnf ]; then
-            echoY 'Remove old mariadb'
-            rm_old_pkg mariadb-server
-        fi
-
-        echoG "InstallMariadb ${MARIAVER}"
-
-        if [ "${OSTYPE}" != "x86_64" ] ; then
-            CENTOSVER=centos${OSVER}-x86
+        if [ "$OSTYPE" != "x86_64" ] ; then
+            CENTOSVER=centos$OSVER-x86
         else
-            CENTOSVER=centos${OSVER}-amd64
+            CENTOSVER=centos$OSVER-amd64
         fi
-
-        cat > ${REPOPATH}/MariaDB.repo << EOM
+        if [ "$OSNAMEVER" = "CENTOS8" ] || [ "$OSNAMEVER" = "CENTOS9" ]; then
+            rpm --quiet --import https://downloads.mariadb.com/MariaDB/MariaDB-Server-GPG-KEY
+            cat > ${REPOPATH}/MariaDB.repo <<END
 [mariadb]
 name = MariaDB
-baseurl = http://yum.mariadb.org/${MARIAVER}/${CENTOSVER}
+baseurl = https://downloads.mariadb.com/MariaDB/mariadb-$MARIADBVER/yum/rhel/\$releasever/\$basearch
+gpgkey = file:///etc/pki/rpm-gpg/MariaDB-Server-GPG-KEY
+gpgcheck=1
+enabled = 1
+module_hotfixes = 1
+END
+        else
+            cat > ${REPOPATH}/MariaDB.repo <<END
+[mariadb]
+name = MariaDB
+baseurl = http://yum.mariadb.org/$MARIADBVER/$CENTOSVER
 gpgkey=https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
 gpgcheck=1
-EOM
-        if [ "${OSNAMEVER}" = "CENTOS8" ] ; then
+END
+        fi 
+        fi
+        echoG "${FPACE} - Install MariaDB"
+        if [ "$OSNAMEVER" = "CENTOS8" ] || [ "$OSNAMEVER" = "CENTOS9" ]; then
             silent yum install -y boost-program-options
             silent yum --disablerepo=AppStream install -y MariaDB-server MariaDB-client
         else
-            silent yum install MariaDB-server MariaDB-client -y
+            silent yum -y install MariaDB-server MariaDB-client
         fi
-    fi
-    systemctl start mariadb
-    local DBSTATUS=$(systemctl is-active mariadb)
-    if [ ${DBSTATUS} = active ]; then
-        echoG "MARIADB is: ${DBSTATUS}"
-    else
-        echoR "[Failed] Mariadb is: ${DBSTATUS}"
-        echoR "You may want to manually run the command 'yum -y install MariaDB-server MariaDB-client' to check. Aborting installation!"
-        exit 1
-    fi
+        if [ $? != 0 ] ; then
+            echoR "An error occured during installation of MariaDB. Please fix this error and try again."
+            echoR "You may want to manually run the command 'yum -y install MariaDB-server MariaDB-client' to check. Aborting installation!"
+            exit 1
+        fi
+        echoG "${FPACE} - Start MariaDB"
+        if [ "$OSNAMEVER" = "CENTOS9" ] || [ "$OSNAMEVER" = "CENTOS8" ] || [ "$OSNAMEVER" = "CENTOS7" ] ; then
+            silent systemctl enable mariadb
+            silent systemctl start  mariadb
+        else
+            service mysql start
+        fi    
 }
 
 set_mariadb_root(){
