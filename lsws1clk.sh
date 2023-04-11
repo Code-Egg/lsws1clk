@@ -203,11 +203,11 @@ check_os()
         if [ ${?} = 0 ] ; then
             OSNAMEVER=CENTOS${OSVER}
             OSNAME=centos
-            sudo wget -q -O - https://repo.litespeed.sh | sudo bash >/dev/null 2>&1
+            sudo wget -q -O - https://repo.litespeed.sh | sudo bash #>/dev/null 2>&1
         fi
     elif [ -f /etc/lsb-release ] ; then
         OSNAME=ubuntu
-        sudo wget -q -O - https://repo.litespeed.sh | sudo bash >/dev/null 2>&1
+        sudo wget -q -O - https://repo.litespeed.sh | sudo bash #>/dev/null 2>&1
         UBUNTU_V=$(grep 'DISTRIB_RELEASE' /etc/lsb-release | awk -F '=' '{print substr($2,1,2)}')
         if [ ${UBUNTU_V} = 14 ] ; then
             OSNAMEVER=UBUNTU14
