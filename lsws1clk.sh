@@ -39,7 +39,7 @@ REPOPATH=''
 WP_CLI='/usr/local/bin/wp'
 MA_COMPOSER='/usr/local/bin/composer'
 LS_VER='6.0.12'
-MA_VER='2.4.5'
+MA_VER='2.4.6'
 OC_VER='4.0.1.1'
 PS_BETA_VER='8.0.0'
 PS_VER='1.7.8.8'
@@ -344,6 +344,22 @@ KILL_PROCESS(){
         kill -9 ${PROC_NUM}
     fi
 }
+
+var_update(){
+    if [ "${APP}" = 'magento' ]; then 
+        echoG Update MariaDB version to '10.6' for Magento. 
+        MARIAVER='10.6'
+    fi
+}
+
+ubuntu_var_update(){
+    var_update
+}
+
+centos_var_update(){
+    var_update
+}
+
 
 ubuntu_sysupdate(){
     echoG 'System update'
@@ -1805,6 +1821,7 @@ init_setup(){
 }
 
 ubuntu_pkg_main(){
+    ubuntu_var_update
     ubuntu_pkg_basic
     if [ "${APP}" = 'wordpress' ]; then 
         ubuntu_pkg_postfix
@@ -1868,6 +1885,7 @@ ubuntu_main_uninstall(){
 }
 
 centos_pkg_main(){
+    centos_var_update
     centos_pkg_basic
     if [ "${APP}" = 'wordpress' ]; then     
         centos_pkg_postfix
