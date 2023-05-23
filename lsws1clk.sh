@@ -40,7 +40,7 @@ WP_CLI='/usr/local/bin/wp'
 MA_COMPOSER='/usr/local/bin/composer'
 LS_VER='6.0.12'
 MA_VER='2.4.6'
-OC_VER='4.0.1.1'
+OC_VER='4.0.2.1'
 PS_BETA_VER='8.0.0'
 PS_VER='1.7.8.8'
 COMPOSER_VER='2.4.2'
@@ -115,7 +115,7 @@ help_message(){
     "1")
         echoY 'Installation finished, please reopen the ssh console to see the banner.'
         if [ "${APP}" = 'opencart' ]; then
-            echo "Follow https://www.litespeedtech.com/support/wiki/doku.php/litespeed_wiki:cache:lscoc to seutp the cache."
+            echo "Follow https://docs.litespeedtech.com/lscache/lscoc/installation/ to seutp the cache."
         fi    
     ;;
     "2")
@@ -402,7 +402,7 @@ gen_password(){
     if [ ! -f ${ADMIN_PASS_PATH} ]; then
         ADMIN_PASS=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 16 ; echo '')
         APP_STR=$(shuf -i 100-999 -n1)
-        APP_PASS=$(openssl rand -hex 16)
+        APP_PASS=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 16 ; echo '')
         APP_ACCT="admin${APP_STR}"
         MA_BACK_URL="admin_${APP_STR}"
         LSPASS=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 16 ; echo '')
@@ -1243,6 +1243,8 @@ install_opencart(){
         get_ip    
         wget -q https://github.com/opencart/opencart/releases/download/${OC_VER}/opencart-${OC_VER}.zip
         unzip -q opencart-${OC_VER}.zip
+        cp upload/config-dist.php upload/config.php
+        cp upload/admin/config-dist.php upload/admin/config.php
         php upload/install/cli_install.php install \
             --db_hostname localhost \
             --db_username ${WP_USER} \
