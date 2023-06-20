@@ -1243,6 +1243,7 @@ install_opencart(){
         get_ip    
         wget -q https://github.com/opencart/opencart/releases/download/${OC_VER}/opencart-${OC_VER}.zip
         unzip -q opencart-${OC_VER}.zip
+        mv opencart-${OC_VER}/upload .
         cp upload/config-dist.php upload/config.php
         cp upload/admin/config-dist.php upload/admin/config.php
         php upload/install/cli_install.php install \
