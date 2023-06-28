@@ -68,6 +68,7 @@ UNINSTALL_ALL=''
 OSNAMEVER=''
 OSNAME=''
 OSVER=''
+DRUSHVER=12
 APP='wordpress'
 EPACE='        '
 FPACE='    '
@@ -134,6 +135,8 @@ help_message(){
         echow '--prestashop-beta'
         echo "${EPACE}${EPACE}Example: lsws1clk.sh --prestashop-beta"
         echow '--mautic'
+        echo "${EPACE}${EPACE}Example: lsws1clk.sh -D"
+        echow '-D, --drupal'
         echo "${EPACE}${EPACE}Example: lsws1clk.sh --mautic"        
         echow '-L, --license'
         echo "${EPACE}${EPACE}Example: lsws1clk.sh -L, to use specified LSWS serial number."        
@@ -203,21 +206,13 @@ check_os()
         if [ ${?} = 0 ] ; then
             OSNAMEVER=CENTOS${OSVER}
             OSNAME=centos
-            sudo wget -q -O - https://repo.litespeed.sh | sudo bash #>/dev/null 2>&1
+            sudo wget -q -O - https://repo.litespeed.sh | sudo bash >/dev/null 2>&1
         fi
     elif [ -f /etc/lsb-release ] ; then
         OSNAME=ubuntu
-        sudo wget -q -O - https://repo.litespeed.sh | sudo bash #>/dev/null 2>&1
+        sudo wget -q -O - https://repo.litespeed.sh | sudo bash >/dev/null 2>&1
         UBUNTU_V=$(grep 'DISTRIB_RELEASE' /etc/lsb-release | awk -F '=' '{print substr($2,1,2)}')
-        if [ ${UBUNTU_V} = 14 ] ; then
-            OSNAMEVER=UBUNTU14
-            OSVER=trusty
-            MARIADBCPUARCH="arch=amd64,i386,ppc64el"
-        elif [ ${UBUNTU_V} = 16 ] ; then
-            OSNAMEVER=UBUNTU16
-            OSVER=xenial
-            MARIADBCPUARCH="arch=amd64,i386,ppc64el"
-        elif [ ${UBUNTU_V} = 18 ] ; then
+        if [ ${UBUNTU_V} = 18 ] ; then
             OSNAMEVER=UBUNTU18
             OSVER=bionic
             MARIADBCPUARCH="arch=amd64"
@@ -232,17 +227,9 @@ check_os()
         fi        
     elif [ -f /etc/debian_version ] ; then
         OSNAME=debian
-        wget -O - http://rpms.litespeedtech.com/debian/enable_lst_debain_repo.sh | bash
+        wget -O - http://rpms.litespeedtech.com/debian/enable_lst_debain_repo.sh | bash >/dev/null 2>&1
         DEBIAN_V=$(awk -F '.' '{print $1}' /etc/debian_version)
-        if [ ${DEBIAN_V} = 7 ] ; then
-            OSNAMEVER=DEBIAN7
-            OSVER=wheezy
-            MARIADBCPUARCH="arch=amd64,i386"
-        elif [ ${DEBIAN_V} = 8 ] ; then
-            OSNAMEVER=DEBIAN8
-            OSVER=jessie
-            MARIADBCPUARCH="arch=amd64,i386"
-        elif [ ${DEBIAN_V} = 9 ] ; then
+        if [ ${DEBIAN_V} = 9 ] ; then
             OSNAMEVER=DEBIAN9
             OSVER=stretch
             MARIADBCPUARCH="arch=amd64,i386"
@@ -255,7 +242,7 @@ check_os()
         fi
     fi
     if [ "${OSNAMEVER}" = "" ] ; then
-        echoR "Sorry, currently one click installation only supports Centos(6-8), Debian(7-11) and Ubuntu(14,16,18,20,22)."
+        echoR "Sorry, currently one click installation only supports Centos(6-8), Debian(9-11) and Ubuntu(18,20,22)."
         echoR "You can download the source code and build from it."
         exit 1
     else
@@ -468,6 +455,10 @@ EOM
         cat >> ${ADMIN_PASS_PATH} <<EOM
 admin_pass="${ADMIN_PASS}"
 EOM
+    elif [ "${APP}" = 'drupal' ]; then
+        cat >> ${ADMIN_PASS_PATH} <<EOM
+admin_pass="${ADMIN_PASS}"
+EOM
     fi
     if [ "${APP}" = 'wordpress' ]; then
         cat >> ${DB_PASS_PATH} <<EOM
@@ -498,6 +489,13 @@ APP_DB_USER_NAME="${APP}"
 APP_DB_pass="${MYSQL_USER_PASS}"
 EOM
     elif [ "${APP}" = 'mautic' ]; then
+        cat >> ${DB_PASS_PATH} <<EOM
+root_mysql_pass="${MYSQL_ROOT_PASS}"
+APP_DB_NAME="${APP}"
+APP_DB_USER_NAME="${APP}"
+APP_DB_pass="${MYSQL_USER_PASS}"
+EOM
+elif [ "${APP}" = 'drupal' ]; then
         cat >> ${DB_PASS_PATH} <<EOM
 root_mysql_pass="${MYSQL_ROOT_PASS}"
 APP_DB_NAME="${APP}"
@@ -1061,6 +1059,20 @@ install_composer(){
     fi    
 }
 
+install_drush(){
+    echoG 'Install Drush'
+    composer global require drush/drush:^${DRUSHVER} --with-all-dependencies -W -q
+    wget -O drush.phar https://github.com/drush-ops/drush-launcher/releases/latest/download/drush.phar -q
+    chmod +x drush.phar
+    if [ ! -e /usr/local/bin/drush ]; then 
+        mv drush.phar /usr/local/bin/drush
+    fi
+    if [ ! -e /usr/bin/drush ]; then 
+        ln -s /usr/local/bin/drush /usr/bin/drush
+    fi     
+    #drush --version
+}
+
 ck_svr_elk_ram(){
     echoG 'Check if memory size is enough.'
     PHYMEM=$(LANG=C free|awk '/^Mem:/{print $2}')
@@ -1314,6 +1326,44 @@ install_mautic(){
     fi
 }
 
+dl_drupal_cache(){
+    echoG 'Download Drupal Cache Plugin'
+    if [ -d "${DOCROOT}/web/modules" ] && [ ! -d "${DOCROOT}/web/modules/lscache-drupal-master" ]; then 
+        cd ${DOCROOT}/web/modules
+        wget https://github.com/litespeedtech/lscache-drupal/archive/master.zip -O master.zip -q 
+        unzip -qq master.zip
+        rm -f master.zip
+    else
+        echo 'Skip cache plugin download!'    
+    fi
+}
+
+install_drupal(){
+    install_composer
+    install_drush
+    set_db_user
+    echoG 'Install Drupal...'
+    echoG 'Download Drupal CMS'
+    if [ ! -d "${DOCROOT}/sites" ]; then
+        composer create-project --no-interaction drupal/recommended-project ${DOCROOT} >/dev/null 2>&1
+        cd ${DOCROOT} && composer require drush/drush -q
+    else
+        echo 'Drupal already exist, abort!'
+        exit 1
+    fi
+    dl_drupal_cache
+    cd ${DOCROOT}
+    export COMPOSER_ALLOW_SUPERUSER=1
+    echo '############# Auto-Installation (one time only) ###############'
+    sudo vendor/bin/drush -y site-install standard --db-url=mysql://drupal:${app_mysql_pass}@127.0.0.1/drupal --account-name=admin --account-pass=${ADMIN_PASS}
+    sudo vendor/bin/drush -y config-set system.performance css.preprocess 0 -q
+    sudo vendor/bin/drush -y config-set system.performance js.preprocess 0 -q
+    sudo vendor/bin/drush cache-rebuild -q
+    sudo sed -i 's|<docRoot>/var/www/html/</docRoot>|<docRoot>/var/www/html/web/</docRoot>|g' ${LSVCONF} >/dev/null
+    sudo vendor/bin/drush pm:enable lite_speed_cache
+    sudo chmod 777 ${DOCROOT}/web/sites/default/files
+}
+
 fix_opencart_image(){
     if [ "${APP}" = 'opencart' ]; then
         cp -r ${DOCROOT}/upload/image/cache/* ${DOCROOT}/image/cache/
@@ -1463,6 +1513,7 @@ install_ps_cache(){
     ./bin/console prestashop:module install litespeedcache.zip
     echoG '[End] PrestaShop LSCach install'
 }    
+
 
 check_els_service(){
     if [ "${OSNAMEVER}" = 'UBUNTU20' ]; then
@@ -1869,9 +1920,11 @@ ubuntu_main_config(){
         else
             install_prestashop
             install_ps_cache
-        fi    
+        fi       
     elif [ "${APP}" = 'mautic' ]; then        
         install_mautic      
+    elif [ "${APP}" = 'drupal' ]; then            
+        install_drupal
     fi    
     restart_lsws
     change_owner ${DOCROOT}
@@ -2041,7 +2094,10 @@ while [ ! -z "${1}" ]; do
             ;;        
         --mautic)
             APP='mautic'
-            ;;                               
+            ;;           
+        -[dD] | --drupal)
+            APP='drupal'
+            ;;                                   
         -[sS] | --sample)
             SAMPLE='true'
             ;;
