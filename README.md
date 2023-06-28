@@ -15,6 +15,7 @@ you can quickly and easily install:
 |V|OpenCart| |
 |V|PrestaShop| V |
 |V|Mautic| |
+|V|Drupal| V |
 
 The script come with trial license by default which has 15 days for free. After that, you may want to apply with your license. Or you can apply your serial number with `--license xxxxxxxx`. License start from $0. [Read More](https://www.litespeedtech.com/products/litespeed-web-server/lsws-pricing)
 
@@ -64,6 +65,11 @@ lsws1clk/lsws1clk.sh -P
 ### Mautic
 ``` bash
 lsws1clk/lsws1clk.sh --mautic
+```
+
+### Drupal
+``` bash
+lsws1clk/lsws1clk.sh --drupal
 ```
 
 ## Uninstall
