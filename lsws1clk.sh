@@ -238,7 +238,10 @@ check_os()
             OSVER=buster
         elif [ ${DEBIAN_V} = 11 ] ; then
             OSNAMEVER=DEBIAN11
-            OSVER=bullseye          
+            OSVER=bullseye       
+        elif [ ${DEBIAN_V} = 12 ] ; then
+            OSNAMEVER=DEBIAN12
+            OSVER=bookworm  	    
         fi
     fi
     if [ "${OSNAMEVER}" = "" ] ; then
