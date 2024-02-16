@@ -39,7 +39,7 @@ REPOPATH=''
 WP_CLI='/usr/local/bin/wp'
 MA_COMPOSER='/usr/local/bin/composer'
 LS_VER='6.1.2'
-MA_VER='2.4.6'
+MA_VER='2.4.6-p4'
 OC_VER='4.0.2.3'
 PS_BETA_VER='8.1.1'
 PS_VER='1.7.8.10'
@@ -436,7 +436,7 @@ EOM
 admin_pass="${ADMIN_PASS}"
 Magento_admin_url="${MA_BACK_URL}"
 MagentO_admin="${APP_ACCT}"
-Magento_passd="${APP_PASS}"
+Magento_passd="${APP_PASS}${APP_STR}"
 doc_user_name="${LSUSER}"
 doc_user_pass="${LSPASS}"
 EOM
@@ -1213,7 +1213,7 @@ install_magento(){
                 --db-user=${WP_USER} \
                 --db-password=${WP_PASS} \
                 --admin-user=${APP_ACCT} \
-                --admin-password=${APP_PASS} \
+                --admin-password=${APP_PASS}${APP_STR} \
                 --admin-email=${EMAIL} \
                 --admin-firstname=test \
                 --admin-lastname=account \
@@ -1237,7 +1237,7 @@ install_ma_sample(){
         echoG 'Start installing Magento 2 sample data'
         git clone https://github.com/magento/magento2-sample-data.git
         cd magento2-sample-data
-        git checkout ${MA_VER}
+        #git checkout ${MA_VER}
         php -f dev/tools/build-sample-data.php -- --ce-source="${DOCROOT}"
         echoG 'Update permission'
         change_owner ${DOCROOT}; cd ${DOCROOT}
