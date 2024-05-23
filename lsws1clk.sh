@@ -38,7 +38,7 @@ REPOPATH=''
 WP_CLI='/usr/local/bin/wp'
 MA_COMPOSER='/usr/local/bin/composer'
 LS_VER='6.2.2'
-MA_VER='2.4.6-p5'
+MA_VER='2.4.7'
 OC_VER='4.0.2.3'
 PS_BETA_VER='8.1.6'
 PS_VER='1.7.8.10'
@@ -54,7 +54,7 @@ REDISSERVICE=''
 REDISCONF=''
 WPCONSTCONF="${DOCROOT}/wp-content/plugins/litespeed-cache/data/const.default.ini"
 PLUGIN='litespeed-cache.zip'
-BANNERNAME='wordpress'
+BANNERNAME='litespeed'
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 BANNERDST=''
 SKIP_WP=0
@@ -174,6 +174,21 @@ get_ip(){
     MYIP=$(curl -s http://checkip.amazonaws.com || printf "0.0.0.0")
 }
 
+function fst_match_line
+{
+    FIRST_LINE_NUM=$(grep -n -m 1 "${1}" ${2} | awk -F ':' '{print $1}')
+}
+function fst_match_after
+{
+    FIRST_NUM_AFTER=$(tail -n +${1} ${2} | grep -n -m 1 ${3} | awk -F ':' '{print $1}')
+}
+function lst_match_line
+{
+    fst_match_after ${1} ${2} ${3}
+    LAST_LINE_NUM=$((${FIRST_LINE_NUM}+${FIRST_NUM_AFTER}-1))
+}
+
+
 line_change(){
     LINENUM=$(grep -v '#' ${2} | grep -n "${1}" | cut -d: -f 1)
     if [ -n "$LINENUM" ] && [ "$LINENUM" -eq "$LINENUM" ] 2>/dev/null; then
@@ -223,6 +238,10 @@ check_os()
             OSNAMEVER=UBUNTU22
             OSVER=jammy
             MARIADBCPUARCH="arch=amd64"
+        elif [ ${UBUNTU_V} = 24 ] ; then
+            OSNAMEVER=UBUNTU24
+            OSVER=noble
+            MARIADBCPUARCH="arch=amd64"            
         fi        
     elif [ -f /etc/debian_version ] ; then
         OSNAME=debian
@@ -244,7 +263,7 @@ check_os()
         fi
     fi
     if [ "${OSNAMEVER}" = "" ] ; then
-        echoR "Sorry, currently one click installation only supports Centos(6-8), Debian(9-11) and Ubuntu(18,20,22)."
+        echoR "Sorry, currently one click installation only supports Centos(6-9), Debian(9-11) and Ubuntu(18,20,22,24)."
         echoR "You can download the source code and build from it."
         exit 1
     else
@@ -1231,12 +1250,29 @@ install_magento(){
     fi
 }
 
+tmp_fix_serialize(){
+    SERIALIZE_JSON="${DOCROOT}/lib/internal/Magento/Framework/Serialize/Serializer/Json.php"
+    if [ -f ${SERIALIZE_JSON} ]; then
+        echoG "Back up ${SERIALIZE_JSON}"
+        cp ${SERIALIZE_JSON} ${SERIALIZE_JSON}.bk
+        grep '(json_last_error' ${SERIALIZE_JSON} >/dev/null 2>&1
+        if [ ${?} -eq 0 ] ; then
+            echo 'Remove json_last_error condition'
+            fst_match_line '(json_last_error' ${SERIALIZE_JSON}
+            lst_match_line ${FIRST_LINE_NUM} ${SERIALIZE_JSON} '}'
+            sed -i "${FIRST_LINE_NUM},${LAST_LINE_NUM}d" ${SERIALIZE_JSON}
+        else
+            echo 'Already disabled for json_last_error'
+        fi
+    fi
+}
+
 install_ma_sample(){
     if [ "${SAMPLE}" = 'true' ]; then
         echoG 'Start installing Magento 2 sample data'
+        tmp_fix_serialize
         git clone https://github.com/magento/magento2-sample-data.git
         cd magento2-sample-data
-        #git checkout ${MA_VER}
         php -f dev/tools/build-sample-data.php -- --ce-source="${DOCROOT}"
         echoG 'Update permission'
         change_owner ${DOCROOT}; cd ${DOCROOT}
@@ -1816,7 +1852,7 @@ renew_blowfish(){
 show_access(){
     if [ "${APP}" = 'magento' ]; then
         echo "Account: ${APP_ACCT}"
-        echo "Password: ${APP_PASS}"
+        echo "Password: ${APP_PASS}${APP_STR}"
         echo "Admin_URL: ${MA_BACK_URL}"
     elif [ "${APP}" = 'opencart' ]; then
         echo "Account: ${APP_ACCT}"
