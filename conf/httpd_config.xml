@@ -122,8 +122,8 @@
   <extProcessorList>
     <extProcessor>
       <type>lsapi</type>
-      <name>lsphp81</name>
-      <address>uds://tmp/lshttpd/lsphp81.sock</address>
+      <name>lsphp82</name>
+      <address>uds://tmp/lshttpd/lsphp82.sock</address>
       <maxConns>200</maxConns>
       <env>PHP_LSAPI_CHILDREN=200</env>
       <env>LSAPI_AVOID_FORK=1</env>
@@ -132,26 +132,26 @@
       <persistConn>1</persistConn>
       <respBuffer>0</respBuffer>
       <autoStart>3</autoStart>
-      <path>/usr/local/lsws/lsphp81/bin/lsphp</path>
+      <path>/usr/local/lsws/lsphp82/bin/lsphp</path>
       <backlog>100</backlog>
       <instances>1</instances>
       <priority>0</priority>
-      <memSoftLimit>2047M</memSoftLimit>
-      <memHardLimit>2047M</memHardLimit>
-      <procSoftLimit>1000</procSoftLimit>
-      <procHardLimit>1000</procHardLimit>
+      <memSoftLimit></memSoftLimit>
+      <memHardLimit></memHardLimit>
+      <procSoftLimit></procSoftLimit>
+      <procHardLimit></procHardLimit>
     </extProcessor>
   </extProcessorList>
   <scriptHandlerList>
     <scriptHandler>
       <suffix>php</suffix>
       <type>lsapi</type>
-      <handler>lsphp81</handler>
+      <handler>lsphp82</handler>
     </scriptHandler>
     <scriptHandler>
       <suffix>php7</suffix>
       <type>lsapi</type>
-      <handler>lsphp81</handler>
+      <handler>lsphp82</handler>
     </scriptHandler>
   </scriptHandlerList>
   <cache>
@@ -167,10 +167,10 @@
     <pcKeepAliveTimeout>1</pcKeepAliveTimeout>
     <respBuffer>0</respBuffer>
     <extMaxIdleTime>60</extMaxIdleTime>
-    <memSoftLimit>2047M</memSoftLimit>
-    <memHardLimit>2047M</memHardLimit>
-    <procSoftLimit>400</procSoftLimit>
-    <procHardLimit>500</procHardLimit>
+    <memSoftLimit></memSoftLimit>
+    <memHardLimit></memHardLimit>
+    <procSoftLimit></procSoftLimit>
+    <procHardLimit></procHardLimit>
   </phpConfig>
   <railsDefaults>
     <railsEnv>1</railsEnv>

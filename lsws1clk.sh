@@ -4,7 +4,6 @@
 # WordPress Latest 
 # Magento stable
 # LSCache Latest 
-# PHP 8.1
 # Memcached stable
 # Redis stable
 # PHPMyAdmin Latest
@@ -26,10 +25,10 @@ LSPASS=''
 LSGROUP=''
 THEME='twentytwenty'
 MARIAVER='10.9'
-DF_PHPVER='81'
-PHPVER='81'
+DF_PHPVER='82'
+PHPVER='82'
 PHP_M='8'
-PHP_S='1'
+PHP_S='2'
 FIREWALLLIST="22 80 443 7080 9200"
 PHP_MEMORY='1999'
 PHP_BIN="${LSDIR}/lsphp${PHPVER}/bin/php"
@@ -38,10 +37,10 @@ WPCFPATH="${DOCROOT}/wp-config.php"
 REPOPATH=''
 WP_CLI='/usr/local/bin/wp'
 MA_COMPOSER='/usr/local/bin/composer'
-LS_VER='6.1.2'
-MA_VER='2.4.6-p4'
+LS_VER='6.2.2'
+MA_VER='2.4.6-p5'
 OC_VER='4.0.2.3'
-PS_BETA_VER='8.1.1'
+PS_BETA_VER='8.1.6'
 PS_VER='1.7.8.10'
 COMPOSER_VER='2.4.2'
 EMAIL='test@example.com'
