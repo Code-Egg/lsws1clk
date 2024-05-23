@@ -575,6 +575,7 @@ test_wp_page(){
 test_magento_page(){
     test_page http://localhost:80/  'Magento, Inc' "test Magento HTTP page"
     test_page https://localhost:443/  'Magento, Inc' "test Magento HTTPS page"
+    cd ${DOCROOT}; rm -rf var/cache/* var/page_cache/* var/generation/*
 }
 test_opencart_page(){
     test_page http://localhost:80/  'OpenCart' "test OpenCart HTTP page"
