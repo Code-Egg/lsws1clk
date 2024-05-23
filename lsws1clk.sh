@@ -304,10 +304,10 @@ provider_ck()
 phpver_ck(){
     if [ "${APP}" = 'prestashop' ]; then
         if [ "${BETA}" = '' ]; then
-            echoG 'Current Prestashop support PHP 74 only, update to 74!'
-            PHPVER='74'
-            PHP_M='7'
-            PHP_S='4'
+            echoG 'Current Prestashop support PHP 81 only, update to 81!'
+            PHPVER='81'
+            PHP_M='8'
+            PHP_S='1'
         fi    
     fi    
 }
