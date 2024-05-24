@@ -40,8 +40,7 @@ MA_COMPOSER='/usr/local/bin/composer'
 LS_VER='6.2.2'
 MA_VER='2.4.7'
 OC_VER='4.0.2.3'
-PS_BETA_VER='8.1.6'
-PS_VER='1.7.8.10'
+PS_VER='8.1.6'
 COMPOSER_VER='2.4.2'
 EMAIL='test@example.com'
 APP_ACCT=''
@@ -131,8 +130,6 @@ help_message(){
         echo "${EPACE}${EPACE}Example: lsws1clk.sh -O"
         echow '-P, --prestashop'
         echo "${EPACE}${EPACE}Example: lsws1clk.sh -P"
-        echow '--prestashop-beta'
-        echo "${EPACE}${EPACE}Example: lsws1clk.sh --prestashop-beta"
         echow '--mautic'
         echo "${EPACE}${EPACE}Example: lsws1clk.sh -D"
         echow '-D, --drupal'
@@ -322,12 +319,10 @@ provider_ck()
 
 phpver_ck(){
     if [ "${APP}" = 'prestashop' ]; then
-        if [ "${BETA}" = '' ]; then
-            echoG 'Current Prestashop support PHP 81 only, update to 81!'
-            PHPVER='81'
-            PHP_M='8'
-            PHP_S='1'
-        fi    
+        echoG 'Current Prestashop support PHP 81 only, update to 81!'
+        PHPVER='81'
+        PHP_M='8'
+        PHP_S='1'
     fi    
 }
 
@@ -1315,28 +1310,8 @@ install_prestashop(){
     if [ ${app_skip} = 0 ]; then
         echoG 'Install Prestashop...'
         get_ip
-        wget -q https://download.prestashop.com/download/releases/prestashop_${PS_VER}.zip
+        wget -q https://github.com/PrestaShop/PrestaShop/releases/download/${PS_VER}/prestashop_${PS_VER}.zip
         unzip -q prestashop_${PS_VER}.zip; mv index.php /tmp/
-        unzip -q prestashop.zip
-        php install/index_cli.php \
-            --domain="${MYIP}" \
-            --db_server=127.0.0.1 \
-            --db_name=${WP_NAME} \
-            --db_user=${WP_USER} \
-            --db_password=${WP_PASS} \
-            --email=${EMAIL} \
-            --password=${APP_PASS};
-    fi
-    mv install install.bk
-}    
-
-install_beta_prestashop(){
-    set_db_user
-    if [ ${app_skip} = 0 ]; then
-        echoG 'Install Prestashop...'
-        get_ip
-        wget -q https://github.com/PrestaShop/PrestaShop/releases/download/${PS_BETA_VER}/prestashop_${PS_BETA_VER}.zip
-        unzip -q prestashop_${PS_BETA_VER}.zip; mv index.php /tmp/
         unzip -q prestashop.zip
         php install/index_cli.php \
             --domain="${MYIP}" \
@@ -1953,13 +1928,8 @@ ubuntu_main_config(){
     elif [ "${APP}" = 'opencart' ]; then        
         install_opencart
     elif [ "${APP}" = 'prestashop' ]; then
-        if [ "${BETA}" = 'yes' ]; then
-            install_beta_prestashop
-            install_ps_cache
-        else
             install_prestashop
-            install_ps_cache
-        fi       
+            #install_ps_cache   
     elif [ "${APP}" = 'mautic' ]; then        
         install_mautic      
     elif [ "${APP}" = 'drupal' ]; then            
@@ -2019,7 +1989,7 @@ centos_main_config(){
         install_opencart
     elif [ "${APP}" = 'prestashop' ]; then        
         install_prestashop  
-        install_ps_cache
+        #install_ps_cache
     elif [ "${APP}" = 'mautic' ]; then        
         install_mautic          
     fi
@@ -2125,12 +2095,7 @@ while [ ! -z "${1}" ]; do
             ;;
         -[pP] | --prestashop)
             APP='prestashop'
-            BETA=''
-            ;;
-        --prestashop-beta)
-            APP='prestashop'
-            BETA='yes'
-            ;;        
+            ;;     
         --mautic)
             APP='mautic'
             ;;           
