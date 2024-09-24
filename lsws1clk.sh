@@ -2045,7 +2045,8 @@ pure_main(){
     setup_pure_lsws
     config_php 
     restart_lsws
-    change_owner ${DOCROOT}    
+    change_owner ${DOCROOT}
+    rm -f "${DB_PASS_PATH}"
     exit 0
 }
 
