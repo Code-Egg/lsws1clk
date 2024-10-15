@@ -1569,7 +1569,11 @@ setup_lsws(){
     backup_old ${LSCONF}
     backup_old ${LSVCONF}
     cp conf/httpd_config.xml ${LSDIR}/conf/
-    cp conf/vhconf.xml ${LSDIR}/DEFAULT/conf/
+    if [ "${APP}" = 'opencart' ]; then
+        cp conf/ocvhconf.xml ${LSDIR}/DEFAULT/conf/vhconf.xml
+    else
+        cp conf/vhconf.xml ${LSDIR}/DEFAULT/conf/
+    fi        
      if [ "${OSNAME}" = 'centos' ]; then
         sed -i "s/www-data/${USER}/g" ${LSCONF}
         sed -i "s|/usr/local/lsws/lsphp${PHP_P}${PHP_S}/bin/lsphp|/usr/bin/lsphp|g" ${LSCONF}
