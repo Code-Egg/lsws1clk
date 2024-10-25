@@ -13,7 +13,7 @@ you can quickly and easily install:
 | V |WordPress | V |
 | V |Magento2 | V |
 |V|OpenCart| |
-|V|PrestaShop| V |
+|V|PrestaShop| |
 |V|Mautic| |
 |V|Drupal| V |
 
